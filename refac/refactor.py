@@ -3,7 +3,7 @@
 import argparse
 import re
 import string
-from itertools import chain, dropwhile, takewhile
+from itertools import chain, takewhile
 from pathlib import Path
 
 from pyparsing import (Char, Group, Literal, OneOrMore, Word, ZeroOrMore,
@@ -19,6 +19,24 @@ def parse_common_block(s: str) -> list:
         OneOrMore(Group(myword + parenthesis + ZeroOrMore(Char(","))))
 
     return parser.parseString(s).asList()
+
+
+def search_for_procedures(index: int, xs: str, procedure: str = "subroutine") -> tuple:
+    """Search for string slice containing the procedure."""
+    start = re.search(f"      {procedure}", xs[index:])
+    if start is not None:
+        end = re.search("      end\n", xs[index + start.start():])
+        return index + start.start(), index + start.start() + end.end()
+    else:
+        return None
+
+
+class Expression:
+    """Naive representation of an expression."""
+
+    def __init__(self, s: str, kind: str):
+        self.text = s
+        self.kind = kind
 
 
 class Refactor:
@@ -112,22 +130,26 @@ end module {self.block_name}
 
         return statement, variables
 
-    def split_into_subroutines(self, path: Path):
-        """Split each file into its subroutines."""
-        def splitter(key: str) -> list:
-            return [key + x for x in xs.split(key) if x]
+    def split_into_procedures(self, path: Path, procedure: str = "subroutine"):
+        """Split file into subroutines and/or functions."""
         with open(path, 'r') as f:
             xs = f.read()
 
-        # subroutine identifier
-        keyword_sub = "      subroutine "
-        keyword_fun = "      function"
-        if keyword_sub in xs:
-            return splitter(keyword_sub)
-        elif keyword_fun in xs:
-            return splitter(keyword_fun)
-        else:
-            raise RuntimeError("Neither subroutine or function found at {path}!")
+        index = 0
+        size = len(xs)
+        components = []
+        while True:
+            rs = search_for_procedures(index, xs, procedure)
+            # There are not more procedures
+            if rs is None:
+                components.append(Expression(xs[index:size], "other"))
+                break
+            else:
+                start, end = rs
+                components.append(Expression(xs[start:end], procedure))
+                index = end
+
+        return components
 
     def change_subroutine(self, module_call: str, xs: str) -> str:
         """Replace common block in subroutine."""
@@ -138,29 +160,27 @@ end module {self.block_name}
         before_common, after_common = split_str_at_keyword(
             self.keyword, after_implicit)
 
-        # if self.multiline:
-        #     # remaining = after_common[1:].split("\n")[:10]
-        #     xs = after_common[1:].split("\n")[:10]
-        #     print("xs: ", xs)
-        #     remaining = '\n'.join(
-        #         dropwhile(lambda x: x[5] == '&', xs))
-        #     print("remaining: ", remaining)
-        #     # after_common = remaining
-
         new_subroutine = before_implicit + module_call + \
             "      implicit real*8(a-h,o-z)\n" + before_common + after_common
+
+        print(new_subroutine)
 
         return new_subroutine
 
     def replace_common_blocks(self, module_call: str, files: list):
         """Replace the common block for the subroutines in the file."""
-        def conditional_replacement(x: str) -> str:
-            return self.change_subroutine(module_call, x) if f"/{self.block_name}/" in x else x
+        def conditional_replacement(x: Expression) -> str:
+            predicate_1 = x.kind != "other"
+            predicate_2 = f"/{self.block_name}/" in x.text
+            if predicate_1 and predicate_2:
+                return self.change_subroutine(module_call, x.text)
+            else:
+                return x.text
 
         for path in files:
             print("Changing file: ", path)
             new_subroutines = '\n'.join(conditional_replacement(
-                x) for x in self.split_into_subroutines(path))
+                x) for x in self.split_into_procedures(path))
             with open(path, 'r+') as f:
                 f.write(new_subroutines)
 
