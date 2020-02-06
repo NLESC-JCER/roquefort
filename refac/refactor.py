@@ -146,6 +146,9 @@ end module {self.block_name}
                 break
             else:
                 start, end = rs
+                # Add comments and other things in the middle
+                components.append(Expression(xs[index: start], "other"))
+                # Add the procedure
                 components.append(Expression(xs[start:end], procedure))
                 index = end
 
@@ -163,8 +166,6 @@ end module {self.block_name}
         new_subroutine = before_implicit + module_call + \
             "      implicit real*8(a-h,o-z)\n" + before_common + after_common
 
-        print(new_subroutine)
-
         return new_subroutine
 
     def replace_common_blocks(self, module_call: str, files: list):
@@ -179,7 +180,7 @@ end module {self.block_name}
 
         for path in files:
             print("Changing file: ", path)
-            new_subroutines = '\n'.join(conditional_replacement(
+            new_subroutines = ''.join(conditional_replacement(
                 x) for x in self.split_into_procedures(path))
             with open(path, 'r+') as f:
                 f.write(new_subroutines)
@@ -199,7 +200,6 @@ end module {self.block_name}
                 f"There is not {self.block_name} common block in the source files")
         else:
             definition = self.read_common_block_definition(target_source[0])
-            print("definition: ", definition)
             module_call, variables = self.generate_module_call(definition)
             new_module = self.generate_new_module(definition, variables)
             self.replace_common_blocks(module_call, target_source)
