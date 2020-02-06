@@ -164,7 +164,7 @@ end module {self.block_name}
             self.keyword, after_implicit)
 
         new_subroutine = before_implicit + module_call + \
-            "      implicit real*8(a-h,o-z)\n" + before_common + after_common
+            "      implicit real*8(a-h,o-z)\n" + before_common + after_common[1:]
 
         return new_subroutine
 
