@@ -168,7 +168,7 @@ end module {self.block_name}
 
         return new_subroutine
 
-    def replace_common_blocks(self, module_call: str, files: list):
+    def replace_common_blocks(self, module_call: str, files: list, procedure: str):
         """Replace the common block for the subroutines in the file."""
         def conditional_replacement(x: Expression) -> str:
             predicate_1 = x.kind != "other"
@@ -181,7 +181,7 @@ end module {self.block_name}
         for path in files:
             print("Changing file: ", path)
             new_subroutines = ''.join(conditional_replacement(
-                x) for x in self.split_into_procedures(path))
+                x) for x in self.split_into_procedures(path, procedure))
             with open(path, 'r+') as f:
                 f.write(new_subroutines)
 
@@ -202,8 +202,16 @@ end module {self.block_name}
             definition = self.read_common_block_definition(target_source[0])
             module_call, variables = self.generate_module_call(definition)
             new_module = self.generate_new_module(definition, variables)
-            self.replace_common_blocks(module_call, target_source)
+            # Add variable to new module
             self.add_new_module(new_module)
+            # Replace common blocks in subroutines
+            print("REPLACING SUBROUTINES!")
+            self.replace_common_blocks(
+                module_call, target_source, "subroutine")
+            # Replace common blocks in functions
+            print("REPLACING FUNCTIONS!")
+            self.replace_common_blocks(
+                module_call, target_source, "function")
 
 
 def split_str_at_keyword(keyword: str, lines: str) -> str:
