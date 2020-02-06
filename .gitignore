@@ -1,0 +1,68 @@
+*.py[cod]
+*.egg-info
+*.eggs
+.ipynb_checkpoints
+
+build
+dist
+.cache
+__pycache__
+
+htmlcov
+.coverage
+coverage.xml
+.pytest_cache
+
+docs/_build
+docs/apidocs
+
+# ide
+.idea
+.eclipse
+.vscode
+*~
+*.swp
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+#Profiling
+*.lprof
+*.prof
+*.out
+
+# pytest
+.pytest*
+
+# Output
+*.log
+
+# swan internals
+swan_models
+
+# data files
+*.hdf5
+
+# Pytorch
+*.pt
+
+# plots
+scatterplot.png
+
+# Local data
+data/*
