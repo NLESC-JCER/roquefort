@@ -46,7 +46,7 @@ class Refactor:
         """Initialize Refactor class."""
         self.block_name = name
         self.path = path
-        self.keyword = f"common /{name}/.*"
+        self.keyword = f"      common /{name}/.*"
 
     def has_common_block(self, path: Path) -> bool:
         """Look up for a specific common block in a given file."""
