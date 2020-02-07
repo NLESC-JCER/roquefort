@@ -182,7 +182,7 @@ end module {self.block_name}
             print("Changing file: ", path)
             new_subroutines = ''.join(conditional_replacement(
                 x) for x in self.split_into_procedures(path, procedure))
-            with open(path, 'r+') as f:
+            with open(path, 'w') as f:
                 f.write(new_subroutines)
 
     def add_new_module(self, new_module: str):
