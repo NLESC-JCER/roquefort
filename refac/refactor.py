@@ -161,7 +161,7 @@ end module {self.block_name}
             "implicit real.*", xs)
         # search and removed common block
         before_common, after_common = split_str_at_keyword(
-            self.keyword, after_implicit)
+            self.keyword, after_implicit, self.multiline)
 
         new_subroutine = before_implicit + module_call + \
             "      implicit real*8(a-h,o-z)\n" + before_common + after_common[1:]
@@ -214,12 +214,27 @@ end module {self.block_name}
                 module_call, target_source, "function")
 
 
-def split_str_at_keyword(keyword: str, lines: str) -> str:
+def search_end_recursively(lines: str, index: int) -> int:
+    """Search for the index of the last continuation line."""
+    patt = r"^\s*&.*"
+    while True:
+        rs = re.search(patt, lines[index:])
+        if rs is None:
+            break
+        else:
+            index += rs.end()
+
+    return index
+
+def split_str_at_keyword(keyword: str, lines: str, multiline: bool = False) -> str:
     """Split lines at `keyword` returning the lines before and after keyword."""
     result = re.search(keyword, lines)
     sub = result.string
-    return sub[:result.start()], sub[result.end():]
-
+    if not multiline:
+        return sub[:result.start()], sub[result.end():]
+    else:
+        end = search_end_recursively(lines, result.end())
+        return sub[:result.start()], sub[end:]
 
 def split_common_block(s: str) -> list:
     """Split common block into its individual variables."""
