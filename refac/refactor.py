@@ -220,7 +220,7 @@ end module {self.block_name}
 def split_variables_into_multiple_lines(variables: list) -> str:
     """Split the variable in lines of a maximun size."""
     fun = lambda lists: sum(len(l) for l in lists)
-    max_size = lambda i: 20 if i == 0 else 60
+    max_size = lambda i: 40 if i == 0 else 60
     lines = [[]]
     index = 0
     for v in variables:
@@ -233,7 +233,7 @@ def split_variables_into_multiple_lines(variables: list) -> str:
 
     xs = [', '.join(group) for group in lines]
 
-    return xs[0] + ',\n     &'.join(xs)
+    return f"{xs[0]},\n     &" + ',\n     &'.join(xs[1:])
 
 def search_end_recursively(lines: str, index: int, size: int = 80) -> int:
     """Search for the index of the last continuation line."""
