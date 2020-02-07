@@ -124,11 +124,13 @@ end module {self.block_name}
 
     def generate_module_call(self, definition: str) -> str:
         """Generate the call to the new module and variable names."""
-        # remove parenthesis
-        variables = ', '.join(x.split('(')[0] for x in definition)
-        statement = f"use {self.block_name}, only: {variables}\n"
+        # remove parenthesis and sort
+        variables = [x.split('(')[0] for x in definition]
+        variables.sort()
+        str_variables = ", ".join(variables)
+        statement = f"use {self.block_name}, only: {str_variables}\n"
 
-        return statement, variables
+        return statement, str_variables
 
     def split_into_procedures(self, path: Path, procedure: str = "subroutine"):
         """Split file into subroutines and/or functions."""
