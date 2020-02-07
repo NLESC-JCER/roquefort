@@ -40,7 +40,7 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     test_suite='tests',
-    install_requires=[],  # FIXME: add your package's dependencies to this list
+    install_requires=["pyparsing"],
     setup_requires=[
         # dependency for `python setup.py test`
         'pytest-runner',
@@ -55,6 +55,6 @@ setup(
         'pycodestyle',
     ],
     extras_require={
-        'dev':  ['prospector[with_pyroma]', 'yapf', 'isort'],
+        'dev':  [],
     }
 )
