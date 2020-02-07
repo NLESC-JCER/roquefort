@@ -128,7 +128,8 @@ end module {self.block_name}
         variables = [x.split('(')[0] for x in definition]
         variables.sort()
         str_variables = ", ".join(variables)
-        statement = f"use {self.block_name}, only: {str_variables}\n"
+        multiline_variable = split_variables_into_multiple_lines(variables)
+        statement = f"use {self.block_name}, only: {multiline_variable}\n"
 
         return statement, str_variables
 
@@ -216,7 +217,25 @@ end module {self.block_name}
                 module_call, target_source, "function")
 
 
-def search_end_recursively(lines: str, index: int) -> int:
+def split_variables_into_multiple_lines(variables: list) -> str:
+    """Split the variable in lines of a maximun size."""
+    fun = lambda lists: sum(len(l) for l in lists)
+    max_size = lambda i: 20 if i == 0 else 60
+    lines = [[]]
+    index = 0
+    for v in variables:
+        acc = fun(lines[index])
+        if acc > max_size(index):
+            lines.append([])
+            index += 1
+        else:
+            lines[index].append(v)
+
+    xs = [', '.join(group) for group in lines]
+
+    return xs[0] + ',\n     &'.join(xs)
+
+def search_end_recursively(lines: str, index: int, size: int = 80) -> int:
     """Search for the index of the last continuation line."""
     patt = r"^\s*&.*"
     while True:
