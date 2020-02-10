@@ -226,6 +226,7 @@ def split_variables_into_multiple_lines(variables: list) -> str:
     for v in variables:
         acc = fun(lines[index])
         if acc > max_size(index):
+            lines[index].append(v)
             lines.append([])
             index += 1
         else:
