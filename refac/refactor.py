@@ -47,6 +47,7 @@ class Refactor:
         self.block_name = name
         self.path = path
         self.keyword = f"      common /{name}/.*"
+        self.multiline = False
 
     def has_common_block(self, path: Path) -> bool:
         """Look up for a specific common block in a given file."""
@@ -128,7 +129,10 @@ end module {self.block_name}
         variables = [x.split('(')[0] for x in definition]
         variables.sort()
         str_variables = ", ".join(variables)
-        multiline_variable = split_variables_into_multiple_lines(variables)
+        if self.multiline:
+            multiline_variable = split_variables_into_multiple_lines(variables)
+        else:
+            multiline_variable = str_variables
         statement = f"use {self.block_name}, only: {multiline_variable}\n"
 
         return statement, str_variables
@@ -235,6 +239,7 @@ def split_variables_into_multiple_lines(variables: list) -> str:
     xs = [', '.join(group) for group in lines]
 
     return f"{xs[0]},\n     &" + ',\n     &'.join(xs[1:])
+
 
 def search_end_recursively(lines: str, index: int, size: int = 80) -> int:
     """Search for the index of the last continuation line."""
