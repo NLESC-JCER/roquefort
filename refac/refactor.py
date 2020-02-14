@@ -13,7 +13,7 @@ from pyparsing import (Char, Group, Literal, OneOrMore, Word, ZeroOrMore,
 def parse_common_block(s: str) -> list:
     """Parse a common block."""
     myword = Word(alphanums + "_")
-    inside = OneOrMore(myword + ZeroOrMore(","))
+    inside = OneOrMore(myword + ZeroOrMore("*") + ZeroOrMore(","))
     parenthesis = ZeroOrMore(Char("(") + inside + Char(")"))
     parser = Literal("common") + Char('/') + myword + Char('/') + \
         OneOrMore(Group(myword + parenthesis + ZeroOrMore(Char(","))))
@@ -164,14 +164,20 @@ end module {self.block_name}
     def change_subroutine(self, module_call: str, xs: str) -> str:
         """Replace common block in subroutine."""
         # Search and removed implicit
-        before_implicit, after_implicit = split_str_at_keyword(
-            "implicit real.*", xs)
+        try:
+            before_implicit, after_implicit = split_str_at_keyword(
+                "implicit real.*", xs)
+        except AttributeError:
+            before_implicit, after_implicit = split_str_at_keyword(
+                "implicit double.*", xs)
+
         # search and removed common block
         before_common, after_common = split_str_at_keyword(
             self.keyword, after_implicit, self.multiline)
 
         new_subroutine = before_implicit + module_call + \
-            "      implicit real*8(a-h,o-z)\n" + before_common + after_common[1:]
+            "      implicit real*8(a-h,o-z)\n" + \
+            before_common + after_common[1:]
 
         return new_subroutine
 
@@ -201,7 +207,7 @@ end module {self.block_name}
         """Remove common block."""
         target_source, target_include = self.get_target_files()
         if target_include:
-            print("Shit happens! There are common blocks in the include files")
+            print("There are common blocks in the include files! There are not transformation rules for this case!!")
         elif not target_source:
             print(
                 f"There is not {self.block_name} common block in the source files")
@@ -223,8 +229,8 @@ end module {self.block_name}
 
 def split_variables_into_multiple_lines(variables: list) -> str:
     """Split the variable in lines of a maximun size."""
-    fun = lambda lists: sum(len(l) for l in lists)
-    max_size = lambda i: 40 if i == 0 else 60
+    def fun(lists): return sum(len(l) for l in lists)
+    def max_size(i): return 40 if i == 0 else 60
     lines = [[]]
     index = 0
     for v in variables:
@@ -237,8 +243,10 @@ def split_variables_into_multiple_lines(variables: list) -> str:
             lines[index].append(v)
 
     xs = [', '.join(group) for group in lines]
-
-    return f"{xs[0]},\n     &" + ',\n     &'.join(xs[1:])
+    if xs[1:]:
+        return f"{xs[0]},\n     &" + ',\n     &'.join(xs[1:])
+    else:
+        return f"{xs[0]}\n"
 
 
 def search_end_recursively(lines: str, index: int, size: int = 80) -> int:
@@ -253,6 +261,7 @@ def search_end_recursively(lines: str, index: int, size: int = 80) -> int:
 
     return index
 
+
 def split_str_at_keyword(keyword: str, lines: str, multiline: bool = False) -> str:
     """Split lines at `keyword` returning the lines before and after keyword."""
     result = re.search(keyword, lines)
@@ -262,6 +271,7 @@ def split_str_at_keyword(keyword: str, lines: str, multiline: bool = False) -> s
     else:
         end = search_end_recursively(lines, result.end())
         return sub[:result.start()], sub[end:]
+
 
 def split_common_block(s: str) -> list:
     """Split common block into its individual variables."""
