@@ -118,8 +118,8 @@ end module {self.block_name}
             common_block = start_common_block
         else:
             self.multiline = True
-            common_block = start_common_block + \
-                search_for_line_continuation(result.string[new_line_index:])
+            rest = search_for_line_continuation(result.string[new_line_index:])
+            common_block = start_common_block + rest
 
         return split_common_block(common_block)
 
@@ -242,7 +242,7 @@ def split_variables_into_multiple_lines(variables: list) -> str:
         else:
             lines[index].append(v)
 
-    xs = [', '.join(group) for group in lines]
+    xs = list(filter(lambda x: x, [', '.join(group) for group in lines]))
     if xs[1:]:
         return f"{xs[0]},\n     &" + ',\n     &'.join(xs[1:])
     else:
@@ -288,10 +288,11 @@ def split_common_block(s: str) -> list:
 
 def search_for_line_continuation(s: str) -> str:
     """Search for & line continuations."""
-    xs = takewhile(lambda x: x.startswith("&"), s.split())
-
-    # Remove the & symbol
-    return ''.join([x[1:] for x in xs])
+    lists = s.splitlines()
+    xss = takewhile(lambda line: len(line) > 0 and line.split()
+                    [0].startswith("&"), lists)
+    result = ''.join([x[1:] for x in xss])
+    return result
 
 
 def get_src_files(path: Path, folder: str):
