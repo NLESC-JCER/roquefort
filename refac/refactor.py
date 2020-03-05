@@ -25,7 +25,7 @@ def search_for_procedures(index: int, xs: str, procedure: str = "subroutine") ->
     """Search for string slice containing the procedure."""
     start = re.search(f"      {procedure}", xs[index:])
     if start is not None:
-        end = re.search("      end\s*\n", xs[index + start.start():])
+        end = re.search(r"      end\s*\n", xs[index + start.start():])
         return index + start.start(), index + start.start() + end.end()
     else:
         return None
@@ -292,7 +292,7 @@ def search_for_line_continuation(s: str) -> str:
     xss = takewhile(lambda line: len(line) > 0 and line.split()
                     [0].startswith("&"), lists)
     result = ''.join([x[1:] for x in xss])
-    return result
+    return result.replace('&', '')
 
 
 def get_src_files(path: Path, folder: str):
