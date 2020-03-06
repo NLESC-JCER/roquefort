@@ -74,15 +74,17 @@ class Refactor:
             f"    {add_kind(v)} {v}" for v in variables)
 
         new = f"""
-module {self.block_name}
-    !> Arguments: {variable_names}
-    use precision_kinds, only: dp
-    include 'vmc.h'
+ module {self.block_name}
+   !> Arguments: {variable_names}
+   use precision_kinds, only: dp
+   include 'vmc.h'
 
 {kinds_and_variables}
 
+    private 
+    public :: {variable_names} 
     save
-end module {self.block_name}
+ end module {self.block_name}
 """
         return new
 
