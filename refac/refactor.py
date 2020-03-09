@@ -163,22 +163,23 @@ class Refactor:
 
         return components
 
-    def change_subroutine(self, module_call: str, xs: str) -> str:
+   def change_subroutine(self, module_call: str, xs: str) -> str:
         """Replace common block in subroutine."""
         # Search and removed implicit
         try:
             before_implicit, after_implicit = split_str_at_keyword(
                 "implicit real.*", xs)
         except AttributeError:
-            try:
-             before_implicit, after_implicit = split_str_at_keyword(
+          try: 
+            before_implicit, after_implicit = split_str_at_keyword(
                 "implicit double.*", xs)
-            except AttributeError:
-             before_implicit, after_implicit = split_str_at_keyword(
-                "implicit none.*", xs)
-            except:
-             before_implicit, after_implicit = split_str_at_keyword(
+          except AttributeError:
+            try: 
+              before_implicit, after_implicit = split_str_at_keyword(
                 "IMPLICIT REAL.*", xs)
+            except AttributeError:
+              before_implicit, after_implicit = split_str_at_keyword(
+                "implicit none.*", xs)
 
         # search and removed common block
         before_common, after_common = split_str_at_keyword(
