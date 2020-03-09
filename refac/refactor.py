@@ -163,7 +163,7 @@ class Refactor:
 
         return components
 
-   def change_subroutine(self, module_call: str, xs: str) -> str:
+    def change_subroutine(self, module_call: str, xs: str) -> str:
         """Replace common block in subroutine."""
         # Search and removed implicit
         implicits = [ "none",  "double", "real"]
