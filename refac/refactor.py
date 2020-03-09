@@ -81,8 +81,8 @@ class Refactor:
 
 {kinds_and_variables}
 
-    private 
-    public :: {variable_names} 
+    private
+    public :: {variable_names}
     save
  end module {self.block_name}
 """
@@ -166,24 +166,20 @@ class Refactor:
    def change_subroutine(self, module_call: str, xs: str) -> str:
         """Replace common block in subroutine."""
         # Search and removed implicit
-        try:
-            before_implicit, after_implicit = split_str_at_keyword(
-                "implicit real.*", xs)
-        except AttributeError:
-          try: 
-            before_implicit, after_implicit = split_str_at_keyword(
-                "implicit double.*", xs)
-          except AttributeError:
-            try: 
-              before_implicit, after_implicit = split_str_at_keyword(
-                "IMPLICIT REAL.*", xs)
+        implicits = [ "none",  "double", "real"]
+        while implicits:
+            try:
+                key = implicits.pop()
+                pattern = f"implicit {key}.*"
+                before_implicit, after_implicit = split_str_at_keyword(
+                    pattern, xs, ignorecase=True)
+                break
             except AttributeError:
-              before_implicit, after_implicit = split_str_at_keyword(
-                "implicit none.*", xs)
+                pass
 
         # search and removed common block
         before_common, after_common = split_str_at_keyword(
-            self.keyword, after_implicit, self.multiline)
+            self.keyword, after_implicit, multiline=self.multiline)
 
         new_subroutine = before_implicit + module_call + \
             "      implicit real*8(a-h,o-z)\n" + \
@@ -272,9 +268,11 @@ def search_end_recursively(lines: str, index: int, size: int = 80) -> int:
     return index
 
 
-def split_str_at_keyword(keyword: str, lines: str, multiline: bool = False) -> str:
+def split_str_at_keyword(
+    keyword: str, lines: str, multiline: bool = False, ignorecase: bool = False) -> str:
     """Split lines at `keyword` returning the lines before and after keyword."""
-    result = re.search(keyword, lines)
+    flags = 0 if not ignorecase else re.IGNORECASE
+    result = re.search(keyword, lines, flags=flags)
     sub = result.string
     if not multiline:
         return sub[:result.start()], sub[result.end():]
