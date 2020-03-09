@@ -170,8 +170,15 @@ class Refactor:
             before_implicit, after_implicit = split_str_at_keyword(
                 "implicit real.*", xs)
         except AttributeError:
-            before_implicit, after_implicit = split_str_at_keyword(
+            try:
+             before_implicit, after_implicit = split_str_at_keyword(
                 "implicit double.*", xs)
+            except AttributeError:
+             before_implicit, after_implicit = split_str_at_keyword(
+                "implicit none.*", xs)
+            except:
+             before_implicit, after_implicit = split_str_at_keyword(
+                "IMPLICIT REAL.*", xs)
 
         # search and removed common block
         before_common, after_common = split_str_at_keyword(
