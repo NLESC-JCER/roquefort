@@ -171,6 +171,9 @@ end module {self.block_name}
             try:
              before_implicit, after_implicit = split_str_at_keyword(
                 "implicit double.*", xs)
+            except AttributeError:
+             before_implicit, after_implicit = split_str_at_keyword(
+                "implicit none.*", xs)
             except:
              before_implicit, after_implicit = split_str_at_keyword(
                 "IMPLICIT REAL.*", xs)
