@@ -25,7 +25,7 @@ def search_for_procedures(index: int, xs: str, procedure: str = "subroutine") ->
     """Search for string slice containing the procedure."""
     start = re.search(f"      {procedure}", xs[index:])
     if start is not None:
-        end = re.search(r"      end\s*\n", xs[index + start.start():])
+        end = re.search(r"(?i)      end\s*\n", xs[index + start.start():])
         return index + start.start(), index + start.start() + end.end()
     else:
         return None
