@@ -300,8 +300,7 @@ def search_for_line_continuation(s: str) -> str:
 def get_src_files(path: Path, folder: str):
     """List of the fortran 77 source files."""
     vmc_path = path / f"src/{folder}"
-    return chain(vmc_path.glob("*.f"), vmc_path.glob("*.h"))
-
+    return chain(sorted(vmc_path.glob("*.f")), sorted(vmc_path.glob("*.h")))
 
 def main():
     """Parse the command line arguments."""
