@@ -254,10 +254,13 @@ class Refactor:
                 name in x for name in used_variables)]
             new_module = self.generate_new_module(
                 used_definitions, used_variables)
-            print("The following variables need to be replace: ")
-            print(used_variables)
-            # # Add variable to new module
-            # self.add_new_module(new_module)
+            # Add variable to new module
+            self.add_new_module(new_module)
+            # print("The following variables need to be replace: ")
+            # print(used_variables)
+            # print("new module: ")
+            # print(new_module)
+
             # print("REPLACING SUBROUTINES!")
             # print("REPLACING FUNCTIONS!")
 
@@ -271,25 +274,21 @@ class Refactor:
                 if not all(x in line for x in (self.block_name, "common")):
                     f.write(line)
 
-    def search_for_variables_in_src(self, definitions: List[str], folder: str) -> Optional[List[str]]:
+    def search_for_variables_in_src(self, variables: List[str], folder: str) -> Optional[List[str]]:
         """Check what the variables in the common block  are use in the `.f` source files."""
         vmc_path = self.path / folder
         # Search in each source file
-        used_variables = []
+        used_variables = set()
         for file_path in vmc_path.rglob("*.f"):
             # Search in binary format
             with open(file_path, 'r') as f:
                 content = f.read()
-            if not definitions:
-                break
-            else:
-                for variable in definitions:
-                    pattern = f"{variable}"
-                    start = re.search(pattern, content)
-                    if start is not None:
-                        used_variables.append(variable)
-                        definitions.remove(variable)
-        return used_variables
+            for variable in variables:
+                pattern = f"{variable}"
+                start = re.search(pattern, content)
+                if start is not None:
+                    used_variables.add(variable)
+        return ", ".join(used_variables)
 
 
 def split_variables_into_multiple_lines(variables: list) -> str:
