@@ -294,7 +294,7 @@ class Refactor:
             with open(file_path, 'r') as f:
                 content = f.read()
             for variable in variables:
-                pattern = f"{variable}"
+                pattern = f"\W{variable}\W"
                 start = re.search(pattern, content)
                 if start is not None:
                     used_variables.add(variable)
