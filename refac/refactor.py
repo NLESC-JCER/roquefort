@@ -105,26 +105,35 @@ class Refactor:
         with open(path, 'r') as f:
             xs = f.read()
 
+        return self.recursive_search_common_block(xs, [])
+
+    def recursive_search_common_block(self, data: str, acc: List[str]) -> List[str]:
+        """Search for one or more definition of a common block."""
         # Get common block definition
-        result = re.search(self.keyword, xs)
+        result = re.search(self.keyword, data)
 
-        # Continuation line
-        next_lines = result.string[result.end():].split()
-
-        # Search for continuation lines
-        new_line_index = result.end() + 6
-        start_common_block = result.group(0).strip()
-
-        # Search for first char in the newt line
-        if next_lines and next_lines[0][0] != '&':
-            self.multiline = False
-            common_block = start_common_block
+        if result is None:
+            return acc
         else:
-            self.multiline = True
-            rest = search_for_line_continuation(result.string[new_line_index:])
-            common_block = start_common_block + rest
+            # Continuation line
+            next_lines = result.string[result.end():].split()
 
-        return split_common_block(common_block)
+            # Search for continuation lines
+            new_line_index = result.end() + 6
+            start_common_block = result.group(0).strip()
+
+            # Search for first char in the newt line
+            if next_lines and next_lines[0][0] != '&':
+                self.multiline = False
+                common_block = start_common_block
+            else:
+                self.multiline = True
+                rest = search_for_line_continuation(
+                    result.string[new_line_index:])
+                common_block = start_common_block + rest
+
+            acc += split_common_block(common_block)
+            return self.recursive_search_common_block(result.string[result.end():], acc)
 
     def generate_module_call(self, definition: str) -> str:
         """Generate the call to the new module and variable names."""
@@ -241,6 +250,7 @@ class Refactor:
         """Process the files that contain include files with commmon blocks."""
         source_folder = "src/vmc"
         definitions = self.read_common_block_definition(target_include[0])
+        print("definitions: ", definitions)
         module_call, variables = self.generate_module_call(definitions)
         used_variables = self.search_for_variables_in_src(
             variables.split(','), source_folder)
