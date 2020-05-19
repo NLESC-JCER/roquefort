@@ -266,12 +266,9 @@ class Refactor:
                 used_definitions, used_variables)
             # Add variable to new module
             self.add_new_module(new_module)
-            # print("The following variables need to be replace: ")
-            # print(used_variables)
-            # print("new module: ")
-            # print(new_module)
-
-            # print("REPLACING SUBROUTINES!")
+            print("The following variables need to be replace: ")
+            print(used_variables)
+            print("REPLACING SUBROUTINES!")
             # print("REPLACING FUNCTIONS!")
 
     def remove_common_block_from_include(self, file_path: Path) -> None:
@@ -290,15 +287,23 @@ class Refactor:
         # Search in each source file
         used_variables = set()
         for file_path in vmc_path.rglob("*.f"):
-            # Search in binary format
-            with open(file_path, 'r') as f:
-                content = f.read()
-            for variable in variables:
-                pattern = f"\W{variable}\W"
-                start = re.search(pattern, content)
-                if start is not None:
-                    used_variables.add(variable)
+            s = check_if_variables_in_file(file_path, variables)
+            used_variables.update(s)
         return ", ".join(used_variables)
+
+
+def check_if_variables_in_file(file_path: Path, variables: List[str]) -> set:
+    """Check if a file contains a given list of variable."""
+    used_variables = set()
+    with open(file_path, 'r') as f:
+        content = f.read()
+    for variable in variables:
+        pattern = f"\W{variable}\W"
+        start = re.search(pattern, content)
+        if start is not None:
+            used_variables.add(variable)
+
+    return used_variables
 
 
 def split_variables_into_multiple_lines(variables: list) -> str:
