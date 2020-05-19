@@ -241,19 +241,23 @@ class Refactor:
         """Process the files that contain include files with commmon blocks."""
         source_folder = "src/vmc"
         definitions = self.read_common_block_definition(target_include[0])
-        print("definitions: ", definitions)
-        used_definitions = self.search_for_definition_in_src(
-            definitions, source_folder)
+        module_call, variables = self.generate_module_call(definitions)
+        used_variables = self.search_for_variables_in_src(
+            variables.split(','), source_folder)
+
         self.remove_common_block_from_include(target_include[0])
-        if not used_definitions:
+        if not used_variables:
             print(
                 f"THE VARIABLES DEFINED IN THE COMMON BLOCK {self.block_name} ARE NOT USED IN THE SOURCE CODE!")
         else:
-            module_call, variables = self.generate_module_call(
-                used_definitions)
-            new_module = self.generate_new_module(used_definitions, variables)
-            # Add variable to new module
-            self.add_new_module(new_module)
+            used_definitions = [x for x in definitions if any(
+                name in x for name in used_variables)]
+            new_module = self.generate_new_module(
+                used_definitions, used_variables)
+            print("The following variables need to be replace: ")
+            print(used_variables)
+            # # Add variable to new module
+            # self.add_new_module(new_module)
             # print("REPLACING SUBROUTINES!")
             # print("REPLACING FUNCTIONS!")
 
@@ -267,7 +271,7 @@ class Refactor:
                 if not all(x in line for x in (self.block_name, "common")):
                     f.write(line)
 
-    def search_for_definition_in_src(self, definitions: List[str], folder: str) -> Optional[List[str]]:
+    def search_for_variables_in_src(self, definitions: List[str], folder: str) -> Optional[List[str]]:
         """Check what the variables in the common block  are use in the `.f` source files."""
         vmc_path = self.path / folder
         # Search in each source file
@@ -280,7 +284,7 @@ class Refactor:
                 break
             else:
                 for variable in definitions:
-                    pattern = f"      {variable}"
+                    pattern = f"{variable}"
                     start = re.search(pattern, content)
                     if start is not None:
                         used_variables.append(variable)
