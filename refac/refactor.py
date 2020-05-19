@@ -116,7 +116,7 @@ class Refactor:
         start_common_block = result.group(0).strip()
 
         # Search for first char in the newt line
-        if next_lines[0][0] != '&':
+        if next_lines and next_lines[0][0] != '&':
             self.multiline = False
             common_block = start_common_block
         else:
@@ -241,6 +241,7 @@ class Refactor:
         """Process the files that contain include files with commmon blocks."""
         source_folder = "src/vmc"
         definitions = self.read_common_block_definition(target_include[0])
+        print("definitions: ", definitions)
         used_definitions = self.search_for_definition_in_src(
             definitions, source_folder)
         self.remove_common_block_from_include(target_include[0])
