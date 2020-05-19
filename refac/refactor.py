@@ -241,7 +241,6 @@ class Refactor:
         """Process the files that contain include files with commmon blocks."""
         source_folder = "src/vmc"
         definitions = self.read_common_block_definition(target_include[0])
-        print("definitions: ", definitions)
         used_definitions = self.search_for_definition_in_src(
             definitions, source_folder)
         self.remove_common_block_from_include(target_include[0])
@@ -252,7 +251,6 @@ class Refactor:
             module_call, variables = self.generate_module_call(
                 used_definitions)
             new_module = self.generate_new_module(used_definitions, variables)
-            print("used_definitions: ", used_definitions)
             # Add variable to new module
             self.add_new_module(new_module)
             # print("REPLACING SUBROUTINES!")
@@ -265,7 +263,7 @@ class Refactor:
             lines = f.readlines()
         with open(file_path, 'w') as f:
             for line in lines:
-                if all(x not in line for x in (self.block_name, "common")):
+                if not all(x in line for x in (self.block_name, "common")):
                     f.write(line)
 
     def search_for_definition_in_src(self, definitions: List[str], folder: str) -> Optional[List[str]]:
