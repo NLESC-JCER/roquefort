@@ -81,8 +81,8 @@ class Refactor:
    include 'vmc.h'
 
 {kinds_and_variables}
-
     private
+
     public :: {variable_names}
     save
  end module {self.block_name}
@@ -239,39 +239,54 @@ class Refactor:
 
     def process_include_common_blocks(self, target_include: List[Path]) -> None:
         """Process the files that contain include files with commmon blocks."""
-        source_folder = "vmc"
+        source_folder = "src/vmc"
         definitions = self.read_common_block_definition(target_include[0])
+        print("definitions: ", definitions)
         used_definitions = self.search_for_definition_in_src(
             definitions, source_folder)
         self.remove_common_block_from_include(target_include[0])
-
-        if used_definitions is None:
+        if not used_definitions:
             print(
                 f"THE VARIABLES DEFINED IN THE COMMON BLOCK {self.block_name} ARE NOT USED IN THE SOURCE CODE!")
         else:
-            module_call, variables = self.generate_module_call(definitions)
-            new_module = self.generate_new_module(definitions, variables)
+            module_call, variables = self.generate_module_call(
+                used_definitions)
+            new_module = self.generate_new_module(used_definitions, variables)
+            print("used_definitions: ", used_definitions)
             # Add variable to new module
             self.add_new_module(new_module)
+            # print("REPLACING SUBROUTINES!")
+            # print("REPLACING FUNCTIONS!")
 
     def remove_common_block_from_include(self, file_path: Path) -> None:
         """Remove the common block  that are not use in the source file."""
         # Check what variables are used in the source code
-        with open(file_path, 'r+') as f:
+        with open(file_path, 'r') as f:
             lines = f.readlines()
-            f.truncate(0)
+        with open(file_path, 'w') as f:
             for line in lines:
-                if self.block_name not in line:
+                if all(x not in line for x in (self.block_name, "common")):
                     f.write(line)
 
-    def search_for_definition_in_src(self, definition: List[str], folder: str) -> Optional[List[str]]:
+    def search_for_definition_in_src(self, definitions: List[str], folder: str) -> Optional[List[str]]:
         """Check what the variables in the common block  are use in the `.f` source files."""
         vmc_path = self.path / folder
         # Search in each source file
+        used_variables = []
         for file_path in vmc_path.rglob("*.f"):
+            # Search in binary format
             with open(file_path, 'r') as f:
                 content = f.read()
-                return [x for x in definition if x in content]
+            if not definitions:
+                break
+            else:
+                for variable in definitions:
+                    pattern = f"      {variable}"
+                    start = re.search(pattern, content)
+                    if start is not None:
+                        used_variables.append(variable)
+                        definitions.remove(variable)
+        return used_variables
 
 
 def split_variables_into_multiple_lines(variables: list) -> str:
