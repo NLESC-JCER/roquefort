@@ -8,6 +8,7 @@ from pathlib import Path
 
 from pyparsing import (Char, Group, Literal, OneOrMore, Word, ZeroOrMore,
                        alphanums)
+from typing import List, Optional
 
 
 def parse_common_block(s: str) -> list:
@@ -57,7 +58,7 @@ class Refactor:
         result = re.search(self.keyword, xs)
         return True if result is not None else False
 
-    def generate_new_module(self, variables: list, variable_names: str) -> str:
+    def generate_new_module(self, variables: List[str], variable_names: str) -> str:
         """Generate new module replacing the common block."""
         integer_variables = string.ascii_lowercase[8:14]
 
@@ -166,7 +167,7 @@ class Refactor:
     def change_subroutine(self, module_call: str, xs: str) -> str:
         """Replace common block in subroutine."""
         # Search and removed implicit
-        implicits = [ "none",  "double", "real"]
+        implicits = ["none", "double", "real"]
         while implicits:
             try:
                 key = implicits.pop()
@@ -187,7 +188,7 @@ class Refactor:
 
         return new_subroutine
 
-    def replace_common_blocks(self, module_call: str, files: list, procedure: str):
+    def replace_common_blocks(self, module_call: str, files: List[Path], procedure: str):
         """Replace the common block for the subroutines in the file."""
         def conditional_replacement(x: Expression) -> str:
             predicate_1 = x.kind != "other"
@@ -213,24 +214,64 @@ class Refactor:
         """Remove common block."""
         target_source, target_include = self.get_target_files()
         if target_include:
-            print("There are common blocks in the include files! There are not transformation rules for this case!!")
+            self.process_include_common_blocks(target_include)
         elif not target_source:
             print(
                 f"There is not {self.block_name} common block in the source files")
         else:
-            definition = self.read_common_block_definition(target_source[0])
-            module_call, variables = self.generate_module_call(definition)
-            new_module = self.generate_new_module(definition, variables)
+            self.process_source_common_blocks(target_source)
+
+    def process_source_common_blocks(self, target_source: List[Path]) -> None:
+        """Replace the common blocks from the source file."""
+        definition = self.read_common_block_definition(target_source[0])
+        module_call, variables = self.generate_module_call(definition)
+        new_module = self.generate_new_module(definition, variables)
+        # Add variable to new module
+        self.add_new_module(new_module)
+        # Replace common blocks in subroutines
+        print("REPLACING SUBROUTINES!")
+        self.replace_common_blocks(
+            module_call, target_source, "subroutine")
+        # Replace common blocks in functions
+        print("REPLACING FUNCTIONS!")
+        self.replace_common_blocks(
+            module_call, target_source, "function")
+
+    def process_include_common_blocks(self, target_include: List[Path]) -> None:
+        """Process the files that contain include files with commmon blocks."""
+        source_folder = "vmc"
+        definitions = self.read_common_block_definition(target_include[0])
+        used_definitions = self.search_for_definition_in_src(
+            definitions, source_folder)
+        self.remove_common_block_from_include(target_include[0])
+
+        if used_definitions is None:
+            print(
+                f"THE VARIABLES DEFINED IN THE COMMON BLOCK {self.block_name} ARE NOT USED IN THE SOURCE CODE!")
+        else:
+            module_call, variables = self.generate_module_call(definitions)
+            new_module = self.generate_new_module(definitions, variables)
             # Add variable to new module
             self.add_new_module(new_module)
-            # Replace common blocks in subroutines
-            print("REPLACING SUBROUTINES!")
-            self.replace_common_blocks(
-                module_call, target_source, "subroutine")
-            # Replace common blocks in functions
-            print("REPLACING FUNCTIONS!")
-            self.replace_common_blocks(
-                module_call, target_source, "function")
+
+    def remove_common_block_from_include(self, file_path: Path) -> None:
+        """Remove the common block  that are not use in the source file."""
+        # Check what variables are used in the source code
+        with open(file_path, 'r+') as f:
+            lines = f.readlines()
+            f.truncate(0)
+            for line in lines:
+                if self.block_name not in line:
+                    f.write(line)
+
+    def search_for_definition_in_src(self, definition: List[str], folder: str) -> Optional[List[str]]:
+        """Check what the variables in the common block  are use in the `.f` source files."""
+        vmc_path = self.path / folder
+        # Search in each source file
+        for file_path in vmc_path.rglob("*.f"):
+            with open(file_path, 'r') as f:
+                content = f.read()
+                return [x for x in definition if x in content]
 
 
 def split_variables_into_multiple_lines(variables: list) -> str:
@@ -269,7 +310,7 @@ def search_end_recursively(lines: str, index: int, size: int = 80) -> int:
 
 
 def split_str_at_keyword(
-    keyword: str, lines: str, multiline: bool = False, ignorecase: bool = False) -> str:
+        keyword: str, lines: str, multiline: bool = False, ignorecase: bool = False) -> str:
     """Split lines at `keyword` returning the lines before and after keyword."""
     flags = 0 if not ignorecase else re.IGNORECASE
     result = re.search(keyword, lines, flags=flags)
@@ -307,6 +348,7 @@ def get_src_files(path: Path, folder: str):
     """List of the fortran 77 source files."""
     vmc_path = path / f"src/{folder}"
     return chain(sorted(vmc_path.glob("*.f")), sorted(vmc_path.glob("*.h")))
+
 
 def main():
     """Parse the command line arguments."""
