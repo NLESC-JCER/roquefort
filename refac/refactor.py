@@ -135,19 +135,24 @@ class Refactor:
             acc += split_common_block(common_block)
             return self.recursive_search_common_block(result.string[result.end():], acc)
 
-    def generate_module_call(self, definition: str) -> str:
-        """Generate the call to the new module and variable names."""
+    def get_variable_names(self, definition: List[str]) -> str:
+        """Get the name of the variables without the shape."""
         # remove parenthesis and sort
         variables = [x.split('(')[0] for x in definition]
         variables.sort()
-        str_variables = ", ".join(variables)
         if self.multiline:
             multiline_variable = split_variables_into_multiple_lines(variables)
         else:
-            multiline_variable = str_variables
+            multiline_variable = ", ".join(variables)
+
+        return multiline_variable
+
+    def generate_module_call(self, definition: str) -> str:
+        """Generate the call to the new module and variable names."""
+        multiline_variable = self.get_variable_names(definition)
         statement = f"use {self.block_name}, only: {multiline_variable}\n"
 
-        return statement, str_variables
+        return statement
 
     def split_into_procedures(self, path: Path, procedure: str = "subroutine"):
         """Split file into subroutines and/or functions."""
@@ -232,9 +237,10 @@ class Refactor:
 
     def process_source_common_blocks(self, target_source: List[Path]) -> None:
         """Replace the common blocks from the source file."""
-        definition = self.read_common_block_definition(target_source[0])
-        module_call, variables = self.generate_module_call(definition)
-        new_module = self.generate_new_module(definition, variables)
+        definitions = self.read_common_block_definition(target_source[0])
+        variables = self.get_variable_names(definitions)
+        module_call = self.generate_module_call(definitions)
+        new_module = self.generate_new_module(definitions, variables)
         # Add variable to new module
         self.add_new_module(new_module)
         # Replace common blocks in subroutines
@@ -251,25 +257,46 @@ class Refactor:
         source_folder = "src/vmc"
         definitions = self.read_common_block_definition(target_include[0])
         print("definitions: ", definitions)
-        module_call, variables = self.generate_module_call(definitions)
+        all_variables = self.get_variable_names(definitions)
+
+        # Variables that are used somewhere in the source files
         used_variables = self.search_for_variables_in_src(
-            variables.split(','), source_folder)
+            all_variables.split(','), source_folder)
 
         self.remove_common_block_from_include(target_include[0])
         if not used_variables:
             print(
                 f"THE VARIABLES DEFINED IN THE COMMON BLOCK {self.block_name} ARE NOT USED IN THE SOURCE CODE!")
         else:
+            # definitions of the used variables
             used_definitions = [x for x in definitions if any(
                 name in x for name in used_variables)]
+
+            # module import with the actual used variables
+            module_call = self.generate_module_call(used_definitions)
+
             new_module = self.generate_new_module(
                 used_definitions, used_variables)
             # Add variable to new module
             self.add_new_module(new_module)
-            print("The following variables need to be replace: ")
-            print(used_variables)
-            print("REPLACING SUBROUTINES!")
-            # print("REPLACING FUNCTIONS!")
+            print("The following variables need to be replace:\n", used_variables)
+            self.add_module_call(used_variables, module_call, source_folder)
+
+    def add_module_call(self, used_variables: List[str], module_call: str, folder: Path) -> None:
+        """Add import module statement to the files that containg the ``used_variables``."""
+        target_source = self.get_files_to_change(
+            used_variables, module_call, folder)
+
+    def get_files_to_change(self, used_variables: List[str], module_call: str, folder: Path) -> List[Path]:
+        """Introduce a module call in subroutines wiht include file."""
+        vmc_path = self.path / folder
+        files = []
+        for file_path in vmc_path.rglob("*.f"):
+            variables_in_file = get_variables_in_file(
+                file_path, used_variables)
+            if variables_in_file:
+                files.append(file_path)
+        return files
 
     def remove_common_block_from_include(self, file_path: Path) -> None:
         """Remove the common block  that are not use in the source file."""
@@ -287,13 +314,13 @@ class Refactor:
         # Search in each source file
         used_variables = set()
         for file_path in vmc_path.rglob("*.f"):
-            s = check_if_variables_in_file(file_path, variables)
+            s = get_variables_in_file(file_path, variables)
             used_variables.update(s)
         return ", ".join(used_variables)
 
 
-def check_if_variables_in_file(file_path: Path, variables: List[str]) -> set:
-    """Check if a file contains a given list of variable."""
+def get_variables_in_file(file_path: Path, variables: List[str]) -> set:
+    """Check if a file contains a given list of variable and return them."""
     used_variables = set()
     with open(file_path, 'r') as f:
         content = f.read()
