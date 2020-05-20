@@ -283,6 +283,8 @@ class Refactor:
             print("The following variables need to be replaced:\n", used_variables)
             self.add_module_call(used_variables, module_call,
                                  source_folder, "subroutine")
+            self.add_module_call(used_variables, module_call,
+                                 source_folder, "function")
 
     def add_module_call(self, used_variables: List[str], module_call: str, folder: Path, procedure: str = "subroutine") -> None:
         """Add import module statement to the files that containg the ``used_variables``."""
