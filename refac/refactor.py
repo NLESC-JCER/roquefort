@@ -8,10 +8,10 @@ from pathlib import Path
 
 from pyparsing import (Char, Group, Literal, OneOrMore, Word, ZeroOrMore,
                        alphanums)
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 
-def parse_common_block(s: str) -> list:
+def parse_common_block(s: str) -> List[str]:
     """Parse a common block."""
     myword = Word(alphanums + "_")
     inside = OneOrMore(myword + ZeroOrMore("*") + ZeroOrMore(","))
@@ -22,7 +22,7 @@ def parse_common_block(s: str) -> list:
     return parser.parseString(s).asList()
 
 
-def search_for_procedures(index: int, xs: str, procedure: str = "subroutine") -> tuple:
+def search_for_procedures(index: int, xs: str, procedure: str = "subroutine") -> Optional[Tuple[int, int]]:
     """Search for string slice containing the procedure."""
     start = re.search(f"      {procedure}", xs[index:])
     if start is not None:
@@ -277,7 +277,7 @@ class Refactor:
             module_call = self.generate_module_call(used_definitions)
 
             new_module = self.generate_new_module(
-                used_definitions, used_variables)
+                used_definitions, ", ".join(used_variables))
             # Add variable to new module
             self.add_new_module(new_module)
             print("The following variables need to be replaced:\n", used_variables)
