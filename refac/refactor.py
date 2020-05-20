@@ -154,8 +154,8 @@ class Refactor:
 
         return statement
 
-    def split_into_procedures(self, path: Path, procedure: str = "subroutine"):
-        """Split file into subroutines and/or functions."""
+    def split_into_procedures(self, path: Path, procedure: str = "subroutine") -> List[Expression]:
+        """Split file content into ``subroutines``, ``functions`` or ``other``."""
         with open(path, 'r') as f:
             xs = f.read()
 
@@ -256,12 +256,13 @@ class Refactor:
         """Process the files that contain include files with commmon blocks."""
         source_folder = "src/vmc"
         definitions = self.read_common_block_definition(target_include[0])
-        print("definitions: ", definitions)
-        all_variables = self.get_variable_names(definitions)
+        # Get names and remove blan[k spaces
+        all_variables = [x.split()[0]
+                         for x in self.get_variable_names(definitions).split(',')]
 
         # Variables that are used somewhere in the source files
         used_variables = self.search_for_variables_in_src(
-            all_variables.split(','), source_folder)
+            all_variables, source_folder)
 
         self.remove_common_block_from_include(target_include[0])
         if not used_variables:
@@ -279,13 +280,31 @@ class Refactor:
                 used_definitions, used_variables)
             # Add variable to new module
             self.add_new_module(new_module)
-            print("The following variables need to be replace:\n", used_variables)
-            self.add_module_call(used_variables, module_call, source_folder)
+            print("The following variables need to be replaced:\n", used_variables)
+            self.add_module_call(used_variables, module_call,
+                                 source_folder, "subroutine")
 
-    def add_module_call(self, used_variables: List[str], module_call: str, folder: Path) -> None:
+    def add_module_call(self, used_variables: List[str], module_call: str, folder: Path, procedure: str = "subroutine") -> None:
         """Add import module statement to the files that containg the ``used_variables``."""
         target_source = self.get_files_to_change(
             used_variables, module_call, folder)
+
+        for path in target_source:
+            print("Changing file: ", path)
+            subroutines_functions = self.split_into_procedures(path, procedure)
+            module = []
+            for expr in subroutines_functions:
+                variables_in_procedure = get_variable_in_string(
+                    expr.text, used_variables)
+                if variables_in_procedure:
+                    pass
+                    module.append(self.change_subroutine(
+                        module_call, expr.text))
+                else:
+                    module.append(expr.text)
+
+        with open(path, 'w') as f:
+            f.write(''.join(module))
 
     def get_files_to_change(self, used_variables: List[str], module_call: str, folder: Path) -> List[Path]:
         """Introduce a module call in subroutines wiht include file."""
@@ -316,14 +335,20 @@ class Refactor:
         for file_path in vmc_path.rglob("*.f"):
             s = get_variables_in_file(file_path, variables)
             used_variables.update(s)
-        return ", ".join(used_variables)
+        return list(used_variables)
 
 
 def get_variables_in_file(file_path: Path, variables: List[str]) -> set:
-    """Check if a file contains a given list of variable and return them."""
-    used_variables = set()
+    """Get the subset of `variables` in ``file_path``."""
     with open(file_path, 'r') as f:
         content = f.read()
+
+    return get_variable_in_string(content, variables)
+
+
+def get_variable_in_string(content: str, variables: List[str]) -> set:
+    """Get the subset of `variables` in ``content``."""
+    used_variables = set()
     for variable in variables:
         pattern = f"\W{variable}\W"
         start = re.search(pattern, content)
@@ -373,12 +398,15 @@ def split_str_at_keyword(
     """Split lines at `keyword` returning the lines before and after keyword."""
     flags = 0 if not ignorecase else re.IGNORECASE
     result = re.search(keyword, lines, flags=flags)
-    sub = result.string
-    if not multiline:
-        return sub[:result.start()], sub[result.end():]
+    if result is None:
+        return lines, ""
     else:
-        end = search_end_recursively(lines, result.end())
-        return sub[:result.start()], sub[end:]
+        sub = result.string
+        if not multiline:
+            return sub[:result.start()], sub[result.end():]
+        else:
+            end = search_end_recursively(lines, result.end())
+            return sub[:result.start()], sub[end:]
 
 
 def split_common_block(s: str) -> list:
