@@ -281,12 +281,14 @@ class Refactor:
             # Add variable to new module
             self.add_new_module(new_module)
             print("The following variables need to be replaced:\n", used_variables)
+            print("REPLACING SUBROUTINES!")
             self.add_module_call(used_variables, module_call,
                                  source_folder, "subroutine")
+            print("REPLACING FUNCTIONS!")
             self.add_module_call(used_variables, module_call,
                                  source_folder, "function")
 
-    def add_module_call(self, used_variables: List[str], module_call: str, folder: Path, procedure: str = "subroutine") -> None:
+    def add_module_call(self, used_variables: List[str], module_call: str, folder: Path, procedure: str) -> None:
         """Add import module statement to the files that containg the ``used_variables``."""
         target_source = self.get_files_to_change(
             used_variables, module_call, folder)
@@ -298,15 +300,14 @@ class Refactor:
             for expr in subroutines_functions:
                 variables_in_procedure = get_variable_in_string(
                     expr.text, used_variables)
-                if variables_in_procedure:
-                    pass
+                if variables_in_procedure and expr.kind == procedure:
                     module.append(self.change_subroutine(
                         module_call, expr.text))
                 else:
                     module.append(expr.text)
 
-        with open(path, 'w') as f:
-            f.write(''.join(module))
+            with open(path, 'w') as f:
+                f.write(''.join(module))
 
     def get_files_to_change(self, used_variables: List[str], module_call: str, folder: Path) -> List[Path]:
         """Introduce a module call in subroutines wiht include file."""
@@ -317,6 +318,7 @@ class Refactor:
                 file_path, used_variables)
             if variables_in_file:
                 files.append(file_path)
+        files.sort()
         return files
 
     def remove_common_block_from_include(self, file_path: Path) -> None:
