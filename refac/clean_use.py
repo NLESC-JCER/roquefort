@@ -46,7 +46,30 @@ def read_file(filename: str) -> List[str]:
     return rawdata
 
 
-def split_data(rawdata: List[str]) -> List[List[str]]:
+def replace_ampersand(rawdata: List[str]) -> List[List[str]]:
+    """[summary]
+
+    Args:
+        rawdata (List[str]): [description]
+
+    Returns:
+        List[List[str]]: [description]
+    """
+
+    for il, rd in enumerate(rawdata):
+        if len(rd) > 0:
+            if rd.lstrip(' ').startswith('use'):
+                next_line = il+1
+                while rawdata[next_line].lstrip(' ').startswith('&'):
+                    name = rd.split()[1].lstrip(',').rstrip(',')
+                    rawdata[next_line] = rawdata[next_line].replace(
+                        '&', ' use %s, only: ' % name)
+                    next_line += 1
+
+    return rawdata
+
+
+def process_data(rawdata: List[str]) -> List[List[str]]:
     """Split the raw data into chunks
 
     Args:
@@ -55,6 +78,7 @@ def split_data(rawdata: List[str]) -> List[List[str]]:
     Returns:
         List[List[str]]: [description]
     """
+    rawdata = replace_ampersand(rawdata)
     return [split_string(rd) if len(rd) > 0 else rd for rd in rawdata]
 
 
@@ -104,7 +128,7 @@ def find_import_var(scope: SimpleNamespace) -> SimpleNamespace:
         if len(s) == 0:
             continue
 
-        if s[0] == 'use':
+        if s[0] == 'use' and len(s) > 2:
 
             module_name = s[1].rstrip('\n')
             mod = SimpleNamespace(
@@ -113,10 +137,10 @@ def find_import_var(scope: SimpleNamespace) -> SimpleNamespace:
 
             for icol in range(3, len(s)):
                 varname = s[icol].rstrip('\n')
+                if len(varname) > 0:
+                    mod.var.append(SimpleNamespace(name=varname,
+                                                   count=None))
 
-                mod.var.append(SimpleNamespace(name=varname,
-                                               icol=icol,
-                                               count=None))
             scope.module.append(mod)
 
     return scope
@@ -175,10 +199,17 @@ def clean_raw_data(rawdata: List[str], scope: SimpleNamespace) -> List[str]:
         if mod.total_count == 0:
             print('      No variable called, removing the entire module')
             rawdata[idx_rawdata] = ''
+            idx_rawdata += 1
+            while rawdata[idx_rawdata].lstrip(' ').startswith('&'):
+                rawdata[idx_rawdata] = ''
+                idx_rawdata += 1
+
         else:
+
             ori_line = rawdata[idx_rawdata]
             line = ori_line.split(
-                'use')[0] + 'use ' + mod.name + ' only : '
+                'use')[0] + 'use ' + mod.name + ', only: '
+
             for var in mod.var:
                 if var.count != 0:
                     line += var.name + ', '
@@ -186,6 +217,12 @@ def clean_raw_data(rawdata: List[str], scope: SimpleNamespace) -> List[str]:
                     print('  ---   removing unused variable %s' %
                           var.name)
             rawdata[idx_rawdata] = line.rstrip(', ') + '\n'
+
+            # remove the unwanted
+            idx_rawdata += 1
+            while rawdata[idx_rawdata].lstrip(' ').startswith('&'):
+                rawdata[idx_rawdata] = ''
+                idx_rawdata += 1
 
     return rawdata
 
@@ -236,7 +273,7 @@ def clean_use_statement(filename: str, overwrite: bool = False) -> List[SimpleNa
     rawdata = read_file(filename)
 
     # splitted data
-    data = split_data(rawdata)
+    data = process_data(rawdata)
 
     # separate in scope
     scoped_data = separate_scope(data)
