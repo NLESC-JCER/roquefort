@@ -93,7 +93,7 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
     """
 
     # identifier for scoping
-    start_keyword = ['subroutine', 'function']
+    start_keyword = ['subroutine', 'function', 'module']
     end_keyword = ['end', 'end\n']
 
     # get the index of start/end scope
@@ -128,7 +128,7 @@ def find_import_var(scope: SimpleNamespace) -> SimpleNamespace:
         if len(s) == 0:
             continue
 
-        if s[0] == 'use' and len(s) > 2:
+        if s[0] == 'use' and s[2].startswith('only'):
 
             module_name = s[1].rstrip('\n')
             mod = SimpleNamespace(
@@ -176,7 +176,7 @@ def count(scope_data: List[str], varname: str) -> int:
     """
     joined_data = ' ' + \
         ' '.join(flatten_string_list(scope_data)) + ' '
-    pattern = re.compile('[\W\s]' + varname + '[\W\s]')
+    pattern = re.compile('[\W\s]' + varname + '[\W\s]', re.IGNORECASE)
     return len(pattern.findall(joined_data))-1
 
 

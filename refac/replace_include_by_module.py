@@ -229,6 +229,8 @@ def replace_include_by_module(filename: str,
             idx_ = scope.istart + idx[0] + n_added_lines
 
             nws = len(rawdata[idx_]) - len(rawdata[idx_].lstrip(' '))
+            if nws == 0:
+                nws = 6
 
             for il, l in enumerate(insert_lines):
                 print('    insert %s at line %d' %
@@ -238,7 +240,7 @@ def replace_include_by_module(filename: str,
 
     for il, d in enumerate(rawdata):
         match_name = "include '%s'" % includename
-        if d.lstrip(' ').rstrip('\n') == match_name:
+        if d.lstrip(' ').rstrip(' ').rstrip('\n') == match_name:
             print('   remove include at line ', il)
             rawdata[il] = ''
 
