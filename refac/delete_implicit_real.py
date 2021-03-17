@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from types import SimpleNamespace
 from typing import List, Optional, Tuple
+import string
 import re
 
 
@@ -105,23 +106,6 @@ def remove_use_without_only(rawdata: List[str]) -> List[List[str]]:
     return rawdata
 
 
-def remove_commented_lines(rawdata: List[str]) -> List[List[str]]:
-    """Remove lines starting with "c ", "C ", "! "
-
-    Args:
-        rawdata (List[str]): [description]
-
-    Returns:
-        List[List[str]]: [description]
-    """
-    for rd in rawdata:
-        if len(rd) > 0:
-            if rd.startswith('c ') or rd.startswith('C ') or \
-               rd.startswith('! '):
-                rawdata.remove(rd)
-    return rawdata
-
-
 def substitute_implicit_real(rawdata: List[str]) -> List[List[str]]:
     """Substitute 'implicit real*8(a-h,o-z)' by 'implicit none'
 
@@ -133,7 +117,7 @@ def substitute_implicit_real(rawdata: List[str]) -> List[List[str]]:
     """
     for index, rd in enumerate(rawdata):
         if rd.lstrip(' ').startswith('implicit real*8(a-h,o-z)'):
-            rawdata[index] = "implicit none"
+            rawdata[index] = "      implicit none"
     return rawdata
 
 
@@ -150,7 +134,6 @@ def process_data(rawdata: List[str]) -> List[List[str]]:
     rawdata = substitute_implicit_real(rawdata)
     rawdata = replace_ampersand(rawdata)
     rawdata = remove_use_without_only(rawdata)
-    rawdata = remove_commented_lines(rawdata)
 
     return [split_string(rd) if len(rd) > 0 else rd for rd in rawdata]
 
@@ -192,10 +175,11 @@ def find_import_var(scope: SimpleNamespace) -> SimpleNamespace:
     """Find variable that are imported in the scope
 
     Args:
-        scope_data (List[str]): data of the scope
+        scope_data (List[str]): data of the scope.
 
     Returns:
-        SimpleNamespace: namespace containing name, iline, icol of each var in scope
+        SimpleNamespace: namespace containing name, iline, icol of
+                         each var in scope.
     """
 
     for iline, s in enumerate(scope.data):
@@ -243,15 +227,15 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     # set of variables found in scope.data:
     # -) Eg. we avoid lines with the following starting-words:
     avoid_analysis = ["implicit", "subroutine", "program", "endif", "enddo",
-                      "return", "\n"]
+                      "return", "!", "c", "C", "\n"]
 
     # -) Also, we know that Fortran keywords are not variables:
     exclude = ["&", "dimension", "if", "endif", "else", "elseif", "end",
                "do", "enddo",
                "then", "return", "\n"]
 
-    # -) We add to the eclude keywords all variables imported by the
-    # use statments:
+    # -) We add to the exclude keywords all variables imported by the
+    # use statements:
     for s in scope.module:
         for v in s.var:
             exclude.append(v.name)
@@ -259,7 +243,7 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     # Second, we analyse the whole scope.data:
     bulky_var = []  # Will carry all the selected variables in scope.data.
 
-    for iline, s in enumerate(scope.data):
+    for s in scope.data:
 
         s_copy = []    # Will carry the selected variables per scope.data line.
 
@@ -278,7 +262,7 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
             # For that, first we exclude the "call xxx" that we
             # now the are not variables:
-            if s[0] == "call":
+            if s[0] == "call" or s[0] == "entry":
                 starting_point = 2
 
             # Now we start the main loop:
@@ -290,14 +274,14 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                   and "\'" not in s[x]:
                     variable = s[x].strip("\n")
 
-                # Make sure it has some lenght, and is not in the
+                # Make sure it has some length, and is not in the
                 # exclude list:
                     if len(variable) > 0 and variable not in exclude:
                         s_copy.append(variable)
                         bulky_var.append(s_copy)
 
-    # Once it is done, append the scope.bulky_var attribute:
-    scope.bulky_var.append(list(dict.fromkeys(flatten_string_list(bulky_var))))
+    # Finish by deleting redundancies:
+    scope.bulky_var = (list(dict.fromkeys(flatten_string_list(bulky_var))))
 
     return scope
 
@@ -322,6 +306,7 @@ def count_var(scope: SimpleNamespace) -> SimpleNamespace:
             var.count = c
             mod.total_count += c
     return scope
+
 
 def count(scope_data: List[str], varname: str) -> int:
     """Count the number of time a variable appears in the
@@ -383,6 +368,12 @@ def clean_raw_data(rawdata: List[str], scope: SimpleNamespace) -> List[str]:
                 rawdata[idx_rawdata] = ''
                 idx_rawdata += 1
 
+    # Declare missed variables:
+    if len(scope.bulky_var):
+        for var in scope.bulky_var:
+            print('  ---   I should add variable: %s' % var)
+            integer_variables = string.ascii_lowercase[8:14]
+
     return rawdata
 
 
@@ -436,10 +427,6 @@ def clean_use_statement(filename: str, overwrite: bool = False) -> List[SimpleNa
 
     # separate in scope
     scoped_data = separate_scope(data)
-#    for i in scoped_data:
-#        print("Pablo NameSpace name:", i.name, "\n")
-#        print("Pablo NameSpace istart:", i.istart, "\n")
-#        print("Pablo NameSpace module:", i.module, "\n")
 
     # loop over scopes
     for scope in scoped_data:
@@ -449,20 +436,20 @@ def clean_use_statement(filename: str, overwrite: bool = False) -> List[SimpleNa
         # find variables
         scope = find_import_var(scope)
         scope = find_bulky_var(scope)
-        print("Pablo prints one scope END:", scope)
-#        print(scope)
+#        print("Pablo says:", scope.name)
 #        for i in scope.bulky_var:
 #            print("Pablo", type(i))
 #            print("Pablo", i.var)
 #                for j in i.var:
 #                    print("Element", j.name)
 #
-#        # count the number of var calls per var per module in scope
-#        scope = count_var(scope)
-#
-#        # clean the raw data
-#        rawdata = clean_raw_data(rawdata, scope)
-#
+        # count the number of var calls per var per module in scope
+        scope = count_var(scope)
+        print("Pablo prints one scope END:", scope)
+
+        # clean the raw data
+        rawdata = clean_raw_data(rawdata, scope)
+
     # save file copy
     if overwrite:
         save_file(filename, rawdata)
@@ -470,7 +457,7 @@ def clean_use_statement(filename: str, overwrite: bool = False) -> List[SimpleNa
         new_filename = get_new_filename(filename)
         save_file(new_filename, rawdata)
 
-    return #scoped_data
+    return scoped_data
 
 
 if __name__ == "__main__":
