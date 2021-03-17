@@ -128,20 +128,24 @@ def find_import_var(scope: SimpleNamespace) -> SimpleNamespace:
         if len(s) == 0:
             continue
 
-        if s[0] == 'use' and s[2].startswith('only'):
+        if len(s) == 2 and s[0] == "use":
+            continue
 
-            module_name = s[1].rstrip('\n')
-            mod = SimpleNamespace(
-                name=module_name, iline=iline, total_count=0)
-            mod.var = []
+        if len(s) >= 2:
+            if s[0] == 'use' and s[2].startswith('only'):
 
-            for icol in range(3, len(s)):
-                varname = s[icol].rstrip('\n')
-                if len(varname) > 0:
-                    mod.var.append(SimpleNamespace(name=varname,
-                                                   count=None))
+                module_name = s[1].rstrip('\n')
+                mod = SimpleNamespace(
+                    name=module_name, iline=iline, total_count=0)
+                mod.var = []
 
-            scope.module.append(mod)
+                for icol in range(3, len(s)):
+                    varname = s[icol].rstrip('\n')
+                    if len(varname) > 0:
+                        mod.var.append(SimpleNamespace(name=varname,
+                                                       count=None))
+
+                scope.module.append(mod)
 
     return scope
 
@@ -155,10 +159,14 @@ def count_var(scope: SimpleNamespace) -> SimpleNamespace:
     Returns:
         SimpleNamespace: [description]
     """
+    # Avoid to count variables in commented lines:
+    exclude = ["c", "C", "!"]
+    data_copy = [var for index, var in enumerate(scope.data)
+                 if var[0] not in exclude]
 
     for mod in scope.module:
         for var in mod.var:
-            c = count(scope.data, var.name)
+            c = count(data_copy, var.name)
             var.count = c
             mod.total_count += c
     return scope
