@@ -90,22 +90,6 @@ def replace_ampersand(rawdata: List[str]) -> List[List[str]]:
     return rawdata
 
 
-def remove_use_without_only(rawdata: List[str]) -> List[List[str]]:
-    """Remove the "use" lines without a "only" statement.
-
-    Args:
-        rawdata (List[str]): [description]
-
-    Returns:
-        List[List[str]]: [description]
-    """
-    for rd in rawdata:
-        if len(rd) > 0:
-            if rd.lstrip(' ').startswith('use') and "only" not in rd:
-                rawdata.remove(rd)
-    return rawdata
-
-
 def substitute_implicit_real(rawdata: List[str]) -> List[List[str]]:
     """Substitute 'implicit real*8(a-h,o-z)' by 'implicit none'
 
@@ -132,8 +116,6 @@ def process_data(rawdata: List[str]) -> List[List[str]]:
     """
 
     rawdata = substitute_implicit_real(rawdata)
-    rawdata = replace_ampersand(rawdata)
-    rawdata = remove_use_without_only(rawdata)
 
     return [split_string(rd) if len(rd) > 0 else rd for rd in rawdata]
 
@@ -171,44 +153,6 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
             for name, istart, iend in zip(name, idx_start, idx_end)]
 
 
-def find_import_var(scope: SimpleNamespace) -> SimpleNamespace:
-    """Find variable that are imported in the scope
-
-    Args:
-        scope_data (List[str]): data of the scope.
-
-    Returns:
-        SimpleNamespace: namespace containing name, iline, icol of
-                         each var in scope.
-    """
-
-    for iline, s in enumerate(scope.data):
-
-        if len(s) == 0:
-            continue
-
-        if len(s) == 2 and s[0] == "use":
-            continue
-
-        if len(s) >= 2:
-            if s[0] == 'use' and s[2].startswith('only'):
-
-                module_name = s[1].rstrip('\n')
-                mod = SimpleNamespace(
-                    name=module_name, iline=iline, total_count=0)
-                mod.var = []
-
-                for icol in range(3, len(s)):
-                    varname = s[icol].rstrip('\n')
-                    if len(varname) > 0:
-                        mod.var.append(SimpleNamespace(name=varname,
-                                                       count=None))
-
-                scope.module.append(mod)
-
-    return scope
-
-
 def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     """
     Filter variables in the bulky scope.data that are not imported by
@@ -227,7 +171,7 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     # set of variables found in scope.data:
     # -) Eg. we avoid lines with the following starting-words:
     avoid_analysis = ["implicit", "subroutine", "program", "endif", "enddo",
-                      "return", "!", "c", "C", "\n"]
+                      "return", "use", "!", "c", "C", "\n"]
 
     # -) Also, we know that Fortran keywords are not variables:
     exclude = ["&", "dimension", "if", "endif", "else", "elseif", "end",
@@ -244,16 +188,12 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     bulky_var = []  # Will carry all the selected variables in scope.data.
 
     for s in scope.data:
-
         s_copy = []    # Will carry the selected variables per scope.data line.
 
         if len(s) == 0:
             continue
 
-        if s[0] == 'use' and s[2].startswith('only'):
-            continue
-
-        if len(s) > 0:
+        if len(s) >= 2:  # avoid use without only statements.
 
             if s[0] in avoid_analysis:
                 continue
@@ -286,46 +226,8 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     return scope
 
 
-def count_var(scope: SimpleNamespace) -> SimpleNamespace:
-    """[summary]
-
-    Args:
-        scope (SimpleNamespace): [description]
-
-    Returns:
-        SimpleNamespace: [description]
-    """
-    # Avoid to count variables in commented lines:
-    exclude = ["c", "C", "!"]
-    data_copy = [var for index, var in enumerate(scope.data)
-                 if var[0] not in exclude]
-
-    for mod in scope.module:
-        for var in mod.var:
-            c = count(data_copy, var.name)
-            var.count = c
-            mod.total_count += c
-    return scope
-
-
-def count(scope_data: List[str], varname: str) -> int:
-    """Count the number of time a variable appears in the
-
-    Args:
-        scope_data (List[str]): data of the scope
-        var (str): name of the vairable
-
-    Returns:
-        int: count
-    """
-    joined_data = ' ' + \
-        ' '.join(flatten_string_list(scope_data)) + ' '
-    pattern = re.compile('[\W\s]' + varname + '[\W\s]', re.IGNORECASE)
-    return len(pattern.findall(joined_data))-1
-
-
-def clean_raw_data(rawdata: List[str],
-                   scope: SimpleNamespace, index: int) -> List[str]:
+def add_undeclared_variables(rawdata: List[str],
+                             scope: SimpleNamespace, index: int) -> List[str]:
     """
 
     Args:
@@ -336,83 +238,29 @@ def clean_raw_data(rawdata: List[str],
     Returns:
         List[str]: [description]
     """
-
-    for mod in scope.module:
-
-        print('  --  Module : %s' % mod.name)
-        idx_rawdata = scope.istart + mod.iline
-
-        if mod.total_count == 0:
-            print('      No variable called, removing the entire module')
-            rawdata[idx_rawdata] = ''
-            idx_rawdata += 1
-            while rawdata[idx_rawdata].lstrip(' ').startswith('&'):
-                rawdata[idx_rawdata] = ''
-                idx_rawdata += 1
-
-        else:
-
-            ori_line = rawdata[idx_rawdata]
-            line = ori_line.split(
-                'use')[0] + 'use ' + mod.name + ', only: '
-
-            for var in mod.var:
-                if var.count != 0:
-                    line += var.name + ', '
-                else:
-                    print('  ---   removing unused variable %s' %
-                          var.name)
-            rawdata[idx_rawdata] = line.rstrip(', ') + '\n'
-
-            # remove the unwanted
-            idx_rawdata += 1
-            while rawdata[idx_rawdata].lstrip(' ').startswith('&'):
-                rawdata[idx_rawdata] = ''
-                idx_rawdata += 1
-
     # Declare missed variables:
     if len(scope.bulky_var):
         new_variables_to_add = []  # Carries the declaration of new variables.
+        new_integers = []
+        new_floats = []
         for var in scope.bulky_var:
             integer_variables = string.ascii_lowercase[8:14]
             if var[0] in integer_variables:
-                new_variables_to_add.extend(['      integer', ' :: ',
-                                             var, "\n"])
+                new_integers.extend(['      integer', ' :: ', var, "\n"])
             else:
-                new_variables_to_add.extend(['      real*8', ' :: ',
-                                             var, "\n"])
+                new_floats.extend(['      real*8', ' :: ', var, "\n"])
+    new_variables_to_add = new_integers + new_floats
 
     # Add declared missed variables to raw data after an "implicit none"
     # declaration:
-#    print("Pablo raw data:", rawdata)
-    print("I should say something here:")
-#    for rd in rawdata:
-##        print("Pablo rd:", rd.lower())
-#        if "implicit none" in rd.lower():
-##        if rd.strip(" ").lower() == "implicitnone":
-#            print("LOWPEZ", rd.lower().index("implicit none"))
-    #print("LOWPEZ", ["caca"].index("implicit none"))
-#    index = int([rd.lstrip().lower() for rd in rawdata].index("implicit none"))
-#    print([rd.lstrip().lower() for rd in rawdata].index("implicit none"))
-###    implicit_indexes = list_duplicates_of(rawdata, "implicit none")
-#    print(rawdata.insert(implicit_indexes[index], new_variables_to_add))
-#    print("Pablo prints the list of indexes:", implicit_indexes, index)
-#    print("Variables to add:", new_variables_to_add, "in index", implicit_indexes[index])
-#    print(type(new_variables_to_add))
-#    print("Lowpez:")
-###    rawdata[implicit_indexes[index]+1:implicit_indexes[index]] = new_variables_to_add
-    # = new_variables_to_add 
+    implicit_indexes = list_duplicates(rawdata, "implicit none")
+    rawdata[implicit_indexes[index]+1:
+            implicit_indexes[index]] = new_variables_to_add
 
-#    for rd in rawdata:
-#        if rd.lstrip().lower() == "implicit none":
-#           idexes.append(rd.index())
-#    print("index:", index, type(index))
-    print(rawdata)
-#    rawdata.insert(index, new_variables_to_add)
     return rawdata
 
 
-def list_duplicates_of(seq, item):
+def list_duplicates(seq, item):
     """Find indexes of duplicate items in a list.
 
     :param seq: Entry list[] to inspect.
@@ -477,7 +325,7 @@ def clean_use_statement(filename: str, overwrite: bool = False) -> List[SimpleNa
     """
 
     print('=')
-    print('= Clean Use Statements from %s' % filename)
+    print('= Add undeclared variables in %s' % filename)
     print('=')
 
     # read the data file and split it
@@ -486,30 +334,21 @@ def clean_use_statement(filename: str, overwrite: bool = False) -> List[SimpleNa
     # splitted data
     data = process_data(rawdata)
 
+#    print("rawdata before the loop:", rawdata)
     # separate in scope
     scoped_data = separate_scope(data)
 
     # loop over scopes
     for index, scope in enumerate(scoped_data):
 
-        print('  - Scope : %s' % scope.name)
+        print('  - Adding variables to scope : %s' % scope.name)
 
-        # find variables
-        scope = find_import_var(scope)
+        # find variables in the bulky body of the scope:
         scope = find_bulky_var(scope)
-#        print("Pablo says:", scope.name)
-#        for i in scope.bulky_var:
-#            print("Pablo", type(i))
-#            print("Pablo", i.var)
-#                for j in i.var:
-#                    print("Element", j.name)
-#
-        # count the number of var calls per var per module in scope
-        scope = count_var(scope)
-#        print("Pablo prints one scope END:", scope)
 
-        # clean the raw data
-        rawdata = clean_raw_data(rawdata, scope, index)
+        # add undeclared variables:
+        rawdata = add_undeclared_variables(rawdata, scope, index)
+        print('  - done!') 
 
     # save file copy
     if overwrite:
