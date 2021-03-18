@@ -91,7 +91,7 @@ def replace_ampersand(rawdata: List[str]) -> List[List[str]]:
 
 
 def remove_use_without_only(rawdata: List[str]) -> List[List[str]]:
-    """Remove the "use" lines without a "only" statment.
+    """Remove the "use" lines without a "only" statement.
 
     Args:
         rawdata (List[str]): [description]
@@ -117,7 +117,7 @@ def substitute_implicit_real(rawdata: List[str]) -> List[List[str]]:
     """
     for index, rd in enumerate(rawdata):
         if rd.lstrip(' ').startswith('implicit real*8(a-h,o-z)'):
-            rawdata[index] = "      implicit none"
+            rawdata[index] = "      implicit none\n\n"
     return rawdata
 
 
@@ -324,12 +324,14 @@ def count(scope_data: List[str], varname: str) -> int:
     return len(pattern.findall(joined_data))-1
 
 
-def clean_raw_data(rawdata: List[str], scope: SimpleNamespace) -> List[str]:
+def clean_raw_data(rawdata: List[str],
+                   scope: SimpleNamespace, index: int) -> List[str]:
     """
 
     Args:
         rawdata (List[str]): [description]
         scope (SimpleNamespace): [description]
+        index: index of scope in the precendent SimpleNamespace.
 
     Returns:
         List[str]: [description]
@@ -370,11 +372,70 @@ def clean_raw_data(rawdata: List[str], scope: SimpleNamespace) -> List[str]:
 
     # Declare missed variables:
     if len(scope.bulky_var):
+        new_variables_to_add = []  # Carries the declaration of new variables.
         for var in scope.bulky_var:
-            print('  ---   I should add variable: %s' % var)
             integer_variables = string.ascii_lowercase[8:14]
+            if var[0] in integer_variables:
+                new_variables_to_add.extend(['      integer', ' :: ',
+                                             var, "\n"])
+            else:
+                new_variables_to_add.extend(['      real*8', ' :: ',
+                                             var, "\n"])
 
+    # Add declared missed variables to raw data after an "implicit none"
+    # declaration:
+#    print("Pablo raw data:", rawdata)
+    print("I should say something here:")
+#    for rd in rawdata:
+##        print("Pablo rd:", rd.lower())
+#        if "implicit none" in rd.lower():
+##        if rd.strip(" ").lower() == "implicitnone":
+#            print("LOWPEZ", rd.lower().index("implicit none"))
+    #print("LOWPEZ", ["caca"].index("implicit none"))
+#    index = int([rd.lstrip().lower() for rd in rawdata].index("implicit none"))
+#    print([rd.lstrip().lower() for rd in rawdata].index("implicit none"))
+###    implicit_indexes = list_duplicates_of(rawdata, "implicit none")
+#    print(rawdata.insert(implicit_indexes[index], new_variables_to_add))
+#    print("Pablo prints the list of indexes:", implicit_indexes, index)
+#    print("Variables to add:", new_variables_to_add, "in index", implicit_indexes[index])
+#    print(type(new_variables_to_add))
+#    print("Lowpez:")
+###    rawdata[implicit_indexes[index]+1:implicit_indexes[index]] = new_variables_to_add
+    # = new_variables_to_add 
+
+#    for rd in rawdata:
+#        if rd.lstrip().lower() == "implicit none":
+#           idexes.append(rd.index())
+#    print("index:", index, type(index))
+    print(rawdata)
+#    rawdata.insert(index, new_variables_to_add)
     return rawdata
+
+
+def list_duplicates_of(seq, item):
+    """Find indexes of duplicate items in a list.
+
+    :param seq: Entry list[] to inspect.
+
+    :param item: Item to look for in the seq list.
+
+    :return indexes: Output list with the indexes where item appears. 
+    """
+    start_at = -1
+    indexes = []
+
+    # Fist, strip and lowercase the entry list:
+    seq_copy = [rd.lstrip().strip("\n").lower() for rd in seq]
+
+    while True:
+        try:
+            loc = seq_copy.index(item, start_at+1)
+        except ValueError:
+            break
+        else:
+            indexes.append(loc)
+            start_at = loc
+    return indexes
 
 
 def get_new_filename(filename: str) -> str:
@@ -429,7 +490,7 @@ def clean_use_statement(filename: str, overwrite: bool = False) -> List[SimpleNa
     scoped_data = separate_scope(data)
 
     # loop over scopes
-    for scope in scoped_data:
+    for index, scope in enumerate(scoped_data):
 
         print('  - Scope : %s' % scope.name)
 
@@ -445,10 +506,10 @@ def clean_use_statement(filename: str, overwrite: bool = False) -> List[SimpleNa
 #
         # count the number of var calls per var per module in scope
         scope = count_var(scope)
-        print("Pablo prints one scope END:", scope)
+#        print("Pablo prints one scope END:", scope)
 
         # clean the raw data
-        rawdata = clean_raw_data(rawdata, scope)
+        rawdata = clean_raw_data(rawdata, scope, index)
 
     # save file copy
     if overwrite:
