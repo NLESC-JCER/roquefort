@@ -32,7 +32,9 @@ def split_string(s: str,
                  |/ | /|/|
                  |\.eq\.|
                  |\.lt\.|
+                 |\.le\.|
                  |\.gt\.|
+                 |\.ge\.|
                  |\.or\.|
                  |\.and\.|
                  |\.not\.|
