@@ -2,6 +2,7 @@
 from types import SimpleNamespace
 from typing import List, Optional, Tuple
 import string
+import argparse
 import re
 
 
@@ -90,6 +91,22 @@ def replace_ampersand(rawdata: List[str]) -> List[List[str]]:
     return rawdata
 
 
+def remove_use_without_only(rawdata: List[str]) -> List[List[str]]:
+    """Remove the "use" lines without a "only" statement.
+
+    Args:
+        rawdata (List[str]): [description]
+
+    Returns:
+        List[List[str]]: [description]
+    """
+    for rd in rawdata:
+        if len(rd) > 0:
+            if rd.lstrip(' ').startswith('use') and "only" not in rd:
+                rawdata.remove(rd)
+    return rawdata
+
+
 def substitute_implicit_real(rawdata: List[str]) -> List[List[str]]:
     """Substitute 'implicit real*8(a-h,o-z)' by 'implicit none'
 
@@ -105,7 +122,7 @@ def substitute_implicit_real(rawdata: List[str]) -> List[List[str]]:
     return rawdata
 
 
-def process_data(rawdata: List[str]) -> List[List[str]]:
+def process_data(rawdata: List[str], clean_implicit: bool) -> List[List[str]]:
     """Split the raw data into chunks
 
     Args:
@@ -115,7 +132,9 @@ def process_data(rawdata: List[str]) -> List[List[str]]:
         List[List[str]]: [description]
     """
 
-    rawdata = substitute_implicit_real(rawdata)
+    if clean_implicit:
+        rawdata = substitute_implicit_real(rawdata)
+    rawdata = replace_ampersand(rawdata)
 
     return [split_string(rd) if len(rd) > 0 else rd for rd in rawdata]
 
@@ -153,6 +172,44 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
             for name, istart, iend in zip(name, idx_start, idx_end)]
 
 
+def find_import_var(scope: SimpleNamespace) -> SimpleNamespace:
+    """Find variable that are imported in the scope
+
+    Args:
+        scope_data (List[str]): data of the scope.
+
+    Returns:
+        SimpleNamespace: namespace containing name, iline, icol of
+                         each var in scope.
+    """
+
+    for iline, s in enumerate(scope.data):
+
+        if len(s) == 0:
+            continue
+
+        if len(s) == 2 and s[0] == "use":
+            continue
+
+        if len(s) >= 2:
+            if s[0] == 'use' and s[2].startswith('only'):
+
+                module_name = s[1].rstrip('\n')
+                mod = SimpleNamespace(
+                    name=module_name, iline=iline, total_count=0)
+                mod.var = []
+
+                for icol in range(3, len(s)):
+                    varname = s[icol].rstrip('\n')
+                    if len(varname) > 0:
+                        mod.var.append(SimpleNamespace(name=varname,
+                                                       count=None))
+
+                scope.module.append(mod)
+
+    return scope
+
+
 def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     """
     Filter variables in the bulky scope.data that are not imported by
@@ -169,31 +226,32 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     """
     # First we define keywords that we will exclude from the potential
     # set of variables found in scope.data:
-    # -) Eg. we avoid lines with the following starting-words:
+    # -) Avoid lines with the following starting-words:
     avoid_analysis = ["implicit", "subroutine", "program", "endif", "enddo",
-                      "return", "use", "!", "c", "C", "\n"]
+                      "return", "!", "c", "C", "use", "\n"]
 
-    # -) Also, we know that Fortran keywords are not variables:
+    # -) Avoid Fortran keywords that are not variables:
     exclude = ["&", "dimension", "if", "endif", "else", "elseif", "end",
-               "do", "enddo",
-               "then", "return", "\n"]
+               "do", "enddo", "then", "return", "\n"]
 
-    # -) We add to the exclude keywords all variables imported by the
-    # use statements:
+    # -) Exclude keywords all variables imported by the use statements:
     for s in scope.module:
         for v in s.var:
             exclude.append(v.name)
 
-    # Second, we analyse the whole scope.data:
-    bulky_var = []  # Will carry all the selected variables in scope.data.
+    # Second, analyse the whole scope.data:
+    bulky_var = []  # carry all the selected variables in scope.data.
 
     for s in scope.data:
-        s_copy = []    # Will carry the selected variables per scope.data line.
+        s_copy = []    # carry the selected variables per scope.data line.
 
         if len(s) == 0:
             continue
 
-        if len(s) >= 2:  # avoid use without only statements.
+        if len(s) == 2 and s[0] == "use":  # avoid use without only statements.
+            continue
+
+        if len(s) >= 2:
 
             if s[0] in avoid_analysis:
                 continue
@@ -222,8 +280,93 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
     # Finish by deleting redundancies:
     scope.bulky_var = (list(dict.fromkeys(flatten_string_list(bulky_var))))
-
     return scope
+
+
+def count_var(scope: SimpleNamespace) -> SimpleNamespace:
+    """[summary]
+
+    Args:
+        scope (SimpleNamespace): [description]
+
+    Returns:
+        SimpleNamespace: [description]
+    """
+    # Avoid to count variables in commented lines:
+    exclude = ["c", "C", "!"]
+    data_copy = [var for index, var in enumerate(scope.data)
+                 if var[0] not in exclude]
+
+    for mod in scope.module:
+        for var in mod.var:
+            c = count(data_copy, var.name)
+            var.count = c
+            mod.total_count += c
+    return scope
+
+
+def count(scope_data: List[str], varname: str) -> int:
+    """Count the number of time a variable appears in the
+
+    Args:
+        scope_data (List[str]): data of the scope
+        var (str): name of the vairable
+
+    Returns:
+        int: count
+    """
+    joined_data = ' ' + \
+        ' '.join(flatten_string_list(scope_data)) + ' '
+    pattern = re.compile('[\W\s]' + varname + '[\W\s]', re.IGNORECASE)
+    return len(pattern.findall(joined_data))-1
+
+
+def clean_raw_data(rawdata: List[str],
+                   scope: SimpleNamespace) -> List[str]:
+    """
+
+    Args:
+        rawdata (List[str]): [description]
+        scope (SimpleNamespace): [description]
+
+    Returns:
+        List[str]: [description]
+    """
+
+    for mod in scope.module:
+
+        print('  --  Module : %s' % mod.name)
+        idx_rawdata = scope.istart + mod.iline
+
+        if mod.total_count == 0:
+            print('      No variable called, removing the entire module')
+            rawdata[idx_rawdata] = ''
+            idx_rawdata += 1
+            while rawdata[idx_rawdata].lstrip(' ').startswith('&'):
+                rawdata[idx_rawdata] = ''
+                idx_rawdata += 1
+
+        else:
+
+            ori_line = rawdata[idx_rawdata]
+            line = ori_line.split(
+                'use')[0] + 'use ' + mod.name + ', only: '
+
+            for var in mod.var:
+                if var.count != 0:
+                    line += var.name + ', '
+                else:
+                    print('  ---   removing unused variable %s' %
+                          var.name)
+            rawdata[idx_rawdata] = line.rstrip(', ') + '\n'
+
+            # remove the unwanted
+            idx_rawdata += 1
+            while rawdata[idx_rawdata].lstrip(' ').startswith('&'):
+                rawdata[idx_rawdata] = ''
+                idx_rawdata += 1
+
+    return rawdata
 
 
 def add_undeclared_variables(rawdata: List[str],
@@ -241,22 +384,31 @@ def add_undeclared_variables(rawdata: List[str],
     # Declare missed variables:
     if len(scope.bulky_var):
         new_variables_to_add = []  # Carries the declaration of new variables.
-        new_integers = []
-        new_floats = []
+        new_integers = ['      integer', ' :: ']
+        new_floats = ['      real*8', ' :: ']
         for var in scope.bulky_var:
             integer_variables = string.ascii_lowercase[8:14]
             if var[0] in integer_variables:
-                new_integers.extend(['      integer', ' :: ', var, "\n"])
+                if len(new_integers) > 2:
+                    new_integers.extend([", ", var])
+                else:
+                    new_integers.extend([var])
             else:
-                new_floats.extend(['      real*8', ' :: ', var, "\n"])
+                if len(new_floats) > 2:
+                    new_floats.extend([", ", var])
+                else:
+                    new_floats.extend([var])
+
+    new_integers.append("\n")
+    new_floats.append("\n")
     new_variables_to_add = new_integers + new_floats
+
 
     # Add declared missed variables to raw data after an "implicit none"
     # declaration:
     implicit_indexes = list_duplicates(rawdata, "implicit none")
     rawdata[implicit_indexes[index]+1:
             implicit_indexes[index]] = new_variables_to_add
-
     return rawdata
 
 
@@ -316,57 +468,102 @@ def save_file(filename: str, rawdata: List[str]):
     print('=')
 
 
-def clean_use_statement(filename: str, overwrite: bool = False) -> List[SimpleNamespace]:
-    """[summary]
+def clean_statements(args: argparse.ArgumentParser) -> \
+                        List[SimpleNamespace]:
+    """Clean 'use' or 'implicit real' statements according to argparse arguments.
+        Writes result to args.filename_copy.f (or .F, or f90 ...) file if the
+        overwrite, -ow, flag is not provided.
 
-    Args:
-        filename (str): [description]
-        overwrite (bool): [description]
+    :param args: argparse arguments, namely:
+                    args.filename,
+                    args.clean_use,
+                    args.clean_implicit
+                    args.overwrite.
+
+    :return: List[] of SimpleNamespace cotaining the scooped data.
     """
-
     print('=')
-    print('= Add undeclared variables in %s' % filename)
+    print('= Clean Use Statements from %s' % args.filename)
     print('=')
 
     # read the data file and split it
-    rawdata = read_file(filename)
+    rawdata = read_file(args.filename)
 
-    # splitted data
-    data = process_data(rawdata)
+    # Prepare data to be splitted in scopes, remove &'s, implicit real, etc:
+    data = process_data(rawdata, args.clean_implicit)
 
-#    print("rawdata before the loop:", rawdata)
     # separate in scope
     scoped_data = separate_scope(data)
 
     # loop over scopes
     for index, scope in enumerate(scoped_data):
 
-        print('  - Adding variables to scope : %s' % scope.name)
+        print('  - Scope : %s' % scope.name)
 
-        # find variables in the bulky body of the scope:
-        scope = find_bulky_var(scope)
+        # Find variables in use statements:
+        scope = find_import_var(scope)
+
+        # Find possible variables on the bulky of the scope:
+        if args.clean_implicit:
+            scope = find_bulky_var(scope)
+
+        if args.clean_use:
+            # Count the number of var calls per var per module in scope:
+            scope = count_var(scope)
+
+            # clean the raw data
+            rawdata = clean_raw_data(rawdata, scope)
 
         # add undeclared variables:
-        rawdata = add_undeclared_variables(rawdata, scope, index)
-        print('  - done!') 
+        if args.clean_implicit:
+            rawdata = add_undeclared_variables(rawdata, scope, index)
 
+        print('    ... done!')
     # save file copy
-    if overwrite:
-        save_file(filename, rawdata)
+    if args.overwrite:
+        save_file(args.filename, rawdata)
     else:
-        new_filename = get_new_filename(filename)
+        new_filename = get_new_filename(args.filename)
         save_file(new_filename, rawdata)
 
     return scoped_data
 
 
 if __name__ == "__main__":
-    import argparse
 
-    parser = argparse.ArgumentParser(description="clean_use filename")
+    parser = argparse.ArgumentParser(description="clean 'use' or \
+                                     'implicit real' statements in filename")
+
     parser.add_argument("filename", help="name of the file to clean")
+
+    # Clean of "use" statements:
     parser.add_argument(
-        '-ow', '--overwrite', action='store_true', help='overwrite the inputfile')
+        '--clean_use', action='store_true',
+        help="clean variables not use in 'use' statements")
+
+    # Replace "implicit real" by "implicit none":
+    parser.add_argument(
+        '--clean_implicit', action='store_true',
+        help="replace 'implicit real' by 'implicit none' statements")
+
+    # Overwrite the file?
+    parser.add_argument(
+        '-ow', '--overwrite', action='store_true',
+        help='overwrite the inputfile')
+
     args = parser.parse_args()
 
-    scope = clean_use_statement(args.filename, args.overwrite)
+# Do a clean_use by default?
+#    if args.clean_use + args.clean_implicit == 0:
+#        args.clean_use = True
+
+    if (args.clean_use and args.clean_implicit):
+        raise parser.error("\nChoose only one action:"
+                           " --clean_use or --clean_implicit")
+
+    elif (args.clean_use or args.clean_implicit):
+        scope = clean_statements(args)
+
+    else:
+        raise parser.error("\nChoose an argument action:"
+                           " --clean_use or --clean_implicit")
