@@ -234,7 +234,8 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
     # -) Avoid Fortran keywords that are not variables:
     exclude = ["&", "dimension", "parameter", "if", "endif", "else", "elseif",
-               "end", "do", "enddo", "then", "return", "\n"]
+               "end", "do", "call", "write", "goto", "enddo", "then",
+               "return", "dexp", "mpi_sum", "\n"]
 
     # -) Exclude keywords all variables imported by the use statements:
     for s in scope.module:
