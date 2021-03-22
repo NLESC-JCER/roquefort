@@ -119,7 +119,7 @@ def substitute_implicit_real(rawdata: List[str]) -> List[List[str]]:
         List[List[str]]: [description]
     """
     for index, rd in enumerate(rawdata):
-        if rd.lstrip(' ').startswith('implicit real*8(a-h,o-z)'):
+        if rd.lstrip(' ').startswith('implicit real*8'):
             rawdata[index] = "      implicit none\n\n"
     return rawdata
 
@@ -235,8 +235,8 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "end", "do", "call", "write", "goto", "enddo", "then",
                "return", "dexp", "min", "max", "nint", "abs", "float",
                "dfloat", "dsqrt", "sqrt", "continue",
-               "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_comm_world",
-               "mpi_double_precision",
+               "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
+               "mpi_comm_world", "mpi_double_precision",
                "\n"]
 
     # Exclude keywords all variables imported by the use statements:
@@ -547,7 +547,7 @@ def clean_statements(args: argparse.ArgumentParser) -> \
 
         # add undeclared variables:
         if args.clean_implicit:
-            rawdata = add_undeclared_variables(rawdata, scope, index)
+            rawdata = add_undeclared_variables(rawdata, scope, index-1)
 
         print('    ... done!')
     # save file copy
