@@ -226,21 +226,23 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                        list[] containing all the unique variables found
                        in scope.data that are not imported by the use imports.
     """
-    # First we define keywords that we will exclude from the potential
-    # set of variables found in scope.data:
-    # -) Avoid lines with the following starting-words:
+    # Avoid lines with the following starting-words:
     avoid_analysis = ["implicit", "subroutine", "program", "endif", "enddo",
                       "return", "!", "c", "C", "use", "\n"]
 
-    # -) Avoid Fortran keywords that are not variables:
+    # Avoid Fortran keywords that are not variables:
     exclude = ["&", "dimension", "parameter", "if", "endif", "else", "elseif",
                "end", "do", "call", "write", "goto", "enddo", "then",
-               "return", "dexp", "mpi_sum", "\n"]
+               "return", "dexp", "min", "max",
+               "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_comm_world",
+               "mpi_double_precision",
+               "\n"]
 
-    # -) Exclude keywords all variables imported by the use statements:
+    # Exclude keywords all variables imported by the use statements:
     for s in scope.module:
         for v in s.var:
-            exclude.append(v.name)
+            exclude.append(v.name.lower())
+    print("Pablo prints the excluded variables", exclude)
 
     # Second, analyse the whole scope.data:
     bulky_var = []  # carry all the selected variables in scope.data.
@@ -273,18 +275,19 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
                 # Make sure that the potential variable is not a digit
                 # and has no quotes:
-                if (not s[x].strip("\n").isdigit()) and "\"" not in s[x] \
-                  and "\'" not in s[x]:
+                if (not s[x].strip("\n").isdigit()) and \
+                  not any(a in s[x] for a in ("\'", "\"", "&")):
                     variable = s[x].strip("\n")
 
                 # Make sure it has some length, and is not in the
                 # exclude list:
-                    if len(variable) > 0 and variable not in exclude:
+                    if len(variable) > 0 and variable.lower() not in exclude:
                         s_copy.append(variable)
                         bulky_var.append(s_copy)
 
     # Finish by deleting redundancies:
     scope.bulky_var = (list(dict.fromkeys(flatten_string_list(bulky_var))))
+    print("Pablo writes bulky.var", scope.bulky_var)
     return scope
 
 
