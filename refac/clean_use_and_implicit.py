@@ -228,12 +228,13 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     """
     # Avoid lines with the following starting-words:
     avoid_analysis = ["implicit", "subroutine", "program", "endif", "enddo",
-                      "return", "!", "c", "C", "use", "\n"]
+                      "return", "continue", "!", "c", "C", "use", "\n"]
 
     # Avoid Fortran keywords that are not variables:
     exclude = ["&", "dimension", "parameter", "if", "endif", "else", "elseif",
                "end", "do", "call", "write", "goto", "enddo", "then",
-               "return", "dexp", "min", "max",
+               "return", "dexp", "min", "max", "nint", "abs", "float",
+               "dfloat",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_comm_world",
                "mpi_double_precision",
                "\n"]
