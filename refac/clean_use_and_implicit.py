@@ -432,6 +432,13 @@ def add_undeclared_variables(rawdata: List[str],
                 else:
                     new_floats.extend([var])
 
+    # Empty the list if there are not elements:
+    if len(new_integers) == 2:
+        new_integers = []
+    if len(new_floats) == 2:
+        new_floats = []
+
+    # Add final new line and combine:
     new_integers.append("\n")
     new_floats.append("\n")
     new_variables_to_add = new_integers + new_floats
@@ -547,7 +554,7 @@ def clean_statements(args: argparse.ArgumentParser) -> \
 
         # add undeclared variables:
         if args.clean_implicit:
-            rawdata = add_undeclared_variables(rawdata, scope, index-1)
+            rawdata = add_undeclared_variables(rawdata, scope, index)
 
         print('    ... done!')
     # save file copy
