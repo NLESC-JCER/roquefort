@@ -390,36 +390,51 @@ def add_undeclared_variables(rawdata: List[str],
     """
     # Declare missed variables:
     if len(scope.bulky_var):
+
         new_variables_to_add = []  # Carries the declaration of new variables.
         new_integers = ['      integer', ' :: ']
         new_floats = ['      real*8', ' :: ']
+
         index_integer = 1
         index_float = 1
-        max_length = 15  # max line length
+        max_line_length = 15
+        new_integer_line = False
+        new_float_line = False
 
         for var in scope.bulky_var:
             integer_variables = string.ascii_lowercase[8:14]
+            # Collect potential integer variables:
             if var[0] in integer_variables:
-                if len(new_integers) >= max_length * index_integer:
+                if len(new_integers) >= max_line_length * index_integer:
                     index_integer += 1
-                    new_integers.extend(["\n", '      integer', ' :: ', var])
+                    new_integers.extend(["\n", '      integer', ' :: '])
+                    new_integer_line = True
                 if len(new_integers) > 2:
-                    new_integers.extend([", ", var])
+                    if new_integer_line:
+                        new_integers.extend([var])
+                        new_integer_line = False
+                    else:
+                        new_integers.extend([", ", var])
                 else:
                     new_integers.extend([var])
+            # Collect potential float variables:
             else:
-                if len(new_floats) >= max_length * index_float:
+                if len(new_floats) >= max_line_length * index_float:
                     index_float += 1
-                    new_floats.extend(["\n", '      real*8', ' :: ', var])
+                    new_floats.extend(["\n", '      real*8', ' :: '])
+                    new_float_line = True
                 if len(new_floats) > 2:
-                    new_floats.extend([", ", var])
+                    if new_float_line:
+                        new_floats.extend([var])
+                        new_float_line = False
+                    else:
+                        new_floats.extend([", ", var])
                 else:
                     new_floats.extend([var])
 
     new_integers.append("\n")
     new_floats.append("\n")
     new_variables_to_add = new_integers + new_floats
-
 
     # Add declared missed variables to raw data after an "implicit none"
     # declaration:
