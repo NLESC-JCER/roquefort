@@ -242,7 +242,6 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     for s in scope.module:
         for v in s.var:
             exclude.append(v.name.lower())
-    print("Pablo prints the excluded variables", exclude)
 
     # Second, analyse the whole scope.data:
     bulky_var = []  # carry all the selected variables in scope.data.
@@ -270,11 +269,11 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
             if s[0].isdigit() and s[1] == "call":
                 starting_point = 3
 
-            # Now we start the main loop:
+            # Start the main loop:
             for x in range(starting_point, len(s)):
 
                 # Make sure that the potential variable is not a digit
-                # and has no quotes:
+                # and has no quotes or ampersand:
                 if (not s[x].strip("\n").isdigit()) and \
                   not any(a in s[x] for a in ("\'", "\"", "&")):
                     variable = s[x].strip("\n")
@@ -287,7 +286,6 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
     # Finish by deleting redundancies:
     scope.bulky_var = (list(dict.fromkeys(flatten_string_list(bulky_var))))
-    print("Pablo writes bulky.var", scope.bulky_var)
     return scope
 
 
