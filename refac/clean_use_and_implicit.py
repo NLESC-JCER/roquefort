@@ -234,7 +234,7 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     exclude = ["&", "dimension", "parameter", "if", "endif", "else", "elseif",
                "end", "do", "call", "write", "goto", "enddo", "then",
                "return", "dexp", "min", "max", "nint", "abs", "float",
-               "dfloat",
+               "dfloat", "dsqrt", "sqrt",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_comm_world",
                "mpi_double_precision",
                "\n"]
