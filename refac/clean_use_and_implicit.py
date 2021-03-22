@@ -234,7 +234,7 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     exclude = ["&", "dimension", "parameter", "if", "endif", "else", "elseif",
                "end", "do", "call", "write", "goto", "enddo", "then",
                "return", "dexp", "min", "max", "nint", "abs", "float",
-               "dfloat", "dsqrt", "sqrt",
+               "dfloat", "dsqrt", "sqrt", "continue",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_comm_world",
                "mpi_double_precision",
                "\n"]
@@ -276,7 +276,7 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                 # Make sure that the potential variable is not a digit
                 # and has no quotes or ampersand:
                 if (not s[x].strip("\n").isdigit()) and \
-                  not any(a in s[x] for a in ("\'", "\"", "&")):
+                  not any(a in s[x] for a in (".", "\'", "\"", "&")):
                     variable = s[x].strip("\n")
 
                 # Make sure it has some length, and is not in the
@@ -393,14 +393,23 @@ def add_undeclared_variables(rawdata: List[str],
         new_variables_to_add = []  # Carries the declaration of new variables.
         new_integers = ['      integer', ' :: ']
         new_floats = ['      real*8', ' :: ']
+        var_index = 1
+        max_length = 15  # max line length
+
         for var in scope.bulky_var:
             integer_variables = string.ascii_lowercase[8:14]
             if var[0] in integer_variables:
+                if len(new_integers) >= max_length * var_index:
+                    var_index += 1
+                    new_integers.extend(["\n", '      integer', ' :: ', var])
                 if len(new_integers) > 2:
                     new_integers.extend([", ", var])
                 else:
                     new_integers.extend([var])
             else:
+                if len(new_floats) >= max_length * var_index:
+                    var_index += 1
+                    new_floats.extend(["\n", '      real*8', ' :: ', var])
                 if len(new_floats) > 2:
                     new_floats.extend([", ", var])
                 else:
@@ -426,7 +435,7 @@ def list_duplicates(seq, item):
 
     :param item: Item to look for in the seq list.
 
-    :return indexes: Output list with the indexes where item appears. 
+    :return indexes: Output list with the indexes where item appears.
     """
     start_at = -1
     indexes = []
