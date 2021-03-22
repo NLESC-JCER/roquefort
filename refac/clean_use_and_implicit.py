@@ -244,7 +244,6 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
     # Second, analyse the whole scope.data:
     bulky_var = []  # carry all the selected variables in scope.data.
-
     for s in scope.data:
         s_copy = []    # carry the selected variables per scope.data line.
 
@@ -261,10 +260,13 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
             starting_point = 0
 
-            # For that, first we exclude the "call xxx" that we
-            # now the are not variables:
+            # Exclude xxx in call to subroutines/functions like "call xxx":
             if s[0] == "call" or s[0] == "entry":
                 starting_point = 2
+
+            # Exclude xxx in call to subroutines/functions like "21 call xxx":
+            if s[0].isdigit() and s[1] == "call":
+                starting_point = 3
 
             # Now we start the main loop:
             for x in range(starting_point, len(s)):
@@ -450,7 +452,6 @@ def get_new_filename(filename: str) -> str:
     Returns:
         str: [description]
     """
-
     base, ext = filename.split('.')
     return base + '_copy.' + ext
 
