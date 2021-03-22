@@ -393,22 +393,23 @@ def add_undeclared_variables(rawdata: List[str],
         new_variables_to_add = []  # Carries the declaration of new variables.
         new_integers = ['      integer', ' :: ']
         new_floats = ['      real*8', ' :: ']
-        var_index = 1
+        index_integer = 1
+        index_float = 1
         max_length = 15  # max line length
 
         for var in scope.bulky_var:
             integer_variables = string.ascii_lowercase[8:14]
             if var[0] in integer_variables:
-                if len(new_integers) >= max_length * var_index:
-                    var_index += 1
+                if len(new_integers) >= max_length * index_integer:
+                    index_integer += 1
                     new_integers.extend(["\n", '      integer', ' :: ', var])
                 if len(new_integers) > 2:
                     new_integers.extend([", ", var])
                 else:
                     new_integers.extend([var])
             else:
-                if len(new_floats) >= max_length * var_index:
-                    var_index += 1
+                if len(new_floats) >= max_length * index_float:
+                    index_float += 1
                     new_floats.extend(["\n", '      real*8', ' :: ', var])
                 if len(new_floats) > 2:
                     new_floats.extend([", ", var])
