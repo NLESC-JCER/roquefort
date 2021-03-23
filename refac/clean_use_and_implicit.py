@@ -268,7 +268,7 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                 starting_point = 2
 
             # Exclude xxx in call to subroutines/functions like "21 call xxx":
-            if s[0].isdigit() and s[1] == "call":
+            if s[0].isdigit() or s[0] == "&" and s[1] == "call":
                 starting_point = 3
 
             # Start the main loop:
