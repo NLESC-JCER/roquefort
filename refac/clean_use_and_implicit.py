@@ -233,7 +233,8 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     # Avoid Fortran keywords that are not variables:
     exclude = ["&", "dimension", "parameter", "if", "endif", "else", "elseif",
                "end", "do", "call", "write", "goto", "enddo", "then",
-               "return", "dexp", "min", "max", "nint", "abs", "float",
+               "return", "min", "max", "nint", "abs", "float", "data",
+               "log", "dlog", "exp", "dexp", "mod", "sign", "int"
                "dfloat", "dsqrt", "sqrt", "continue",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision",
@@ -393,7 +394,7 @@ def add_undeclared_variables(rawdata: List[str],
 
         new_variables_to_add = []  # Carries the declaration of new variables.
         new_integers = ['      integer', ' :: ']
-        new_floats = ['      real*8', ' :: ']
+        new_floats = ['      real(dp)', ' :: ']
 
         index_integer = 1
         index_float = 1
@@ -421,7 +422,7 @@ def add_undeclared_variables(rawdata: List[str],
             else:
                 if len(new_floats) >= max_line_length * index_float:
                     index_float += 1
-                    new_floats.extend(["\n", '      real*8', ' :: '])
+                    new_floats.extend(["\n", '      real(dp)', ' :: '])
                     new_float_line = True
                 if len(new_floats) > 2:
                     if new_float_line:
