@@ -245,7 +245,7 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
         for v in s.var:
             exclude.append(v.name.lower())
 
-    # Second, analyse the whole scope.data:
+    # Analyse the whole scope.data:
     bulky_var = []  # carry all the selected variables in scope.data.
     for s in scope.data:
         s_copy = []    # carry the selected variables per scope.data line.
