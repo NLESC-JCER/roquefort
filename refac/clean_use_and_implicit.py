@@ -272,19 +272,24 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                 starting_point = 3
 
             # Start the main loop:
-            for x in range(starting_point, len(s)):
+            s_iter = iter(s[starting_point:])
+            for x in s_iter:
+                # Skip xxx variables in lines like: if() call xxx():
+                if x.strip("\n") == "call":
+                    next(s_iter)
+                    next(s_iter)
+                else:
+                    # Make sure that the potential variable is not a digit
+                    # and has no quotes or ampersand:
+                    if (not x.strip("\n").isdigit()) and \
+                       not any(a in x for a in (".", "\'", "\"", "&")):
+                        variable = x.strip("\n")
 
-                # Make sure that the potential variable is not a digit
-                # and has no quotes or ampersand:
-                if (not s[x].strip("\n").isdigit()) and \
-                  not any(a in s[x] for a in (".", "\'", "\"", "&")):
-                    variable = s[x].strip("\n")
-
-                # Make sure it has some length, and is not in the
-                # exclude list:
-                    if len(variable) > 0 and variable.lower() not in exclude:
-                        s_copy.append(variable)
-                        bulky_var.append(s_copy)
+                    # Make sure it has some length, and is not in the
+                    # exclude list:
+                        if len(variable) > 0 and variable.lower() not in exclude:
+                            s_copy.append(variable)
+                            bulky_var.append(s_copy)
 
     # Finish by deleting redundancies:
     scope.bulky_var = (list(dict.fromkeys(flatten_string_list(bulky_var))))
