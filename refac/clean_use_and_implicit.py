@@ -462,7 +462,6 @@ def add_undeclared_variables(rawdata: List[str],
     new_integers.append("\n")
     new_floats.append("\n")
     new_variables_to_add = new_integers + new_floats
-    print("New floats to add:", new_floats)
 
     # Add declared missed variables to raw data after an "implicit none"
     # declaration:
