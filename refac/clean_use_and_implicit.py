@@ -285,7 +285,12 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                     next(s_iter)
                     next(s_iter)
                 else:
-                    if any(a in x for a in ("\'", "\"", "\'\'")):
+                    if any(a in x[0] for a in ("\'", "\"", "\'\'")):
+
+                        # Remove single quoted words, e.g.: 'unformated'
+                        if any(a in x[-1] for a in ("\'", "\"", "\'\'")):
+                            continue
+
                         if in_quotes:
                             in_quotes = False
                             continue
@@ -301,7 +306,8 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
                     # Make sure it has some length, and is not in the
                     # exclude list:
-                        if len(variable) > 0 and variable.lower() not in exclude:
+                        if len(variable) > 0 and variable.lower() \
+                           not in exclude:
                             s_copy.append(variable)
                             bulky_var.append(s_copy)
 
