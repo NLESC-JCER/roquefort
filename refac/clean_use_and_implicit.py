@@ -23,6 +23,7 @@ def split_string(s: str,
                  str =
                  r''' |
                  |, | ,|,|
+                 |: | :|:|
                  |\= | \=|\=|
                  |\* | \*|\*|
                  |- | -|-|
@@ -232,13 +233,17 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
     # Avoid Fortran keywords that are not variables:
     exclude = ["&", "dimension", "parameter", "if", "endif", "else", "elseif",
-               "end", "do", "call", "write", "goto", "enddo", "then",
-               "return", "min", "max", "nint", "abs", "float", "data",
-               "log", "dlog", "exp", "dexp", "mod", "sign", "int"
+               "end", "open", "close", "do", "call", "write", "goto", "enddo",
+               "then", "to", "return", "min", "max", "nint", "abs", "float",
+               "data", "log", "dlog", "exp", "dexp", "mod", "sign", "int",
+               "status", "form", "file", "unit",
                "dfloat", "dsqrt", "sqrt", "continue",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision",
                "\n"]
+
+    # Initiate boolean to discern if variable is within quotes:
+    in_quotes = False
 
     # Exclude keywords all variables imported by the use statements:
     for s in scope.module:
@@ -274,15 +279,24 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
             # Start the main loop:
             s_iter = iter(s[starting_point:])
             for x in s_iter:
+
                 # Skip xxx variables in lines like: if() call xxx():
                 if x.strip("\n") == "call":
                     next(s_iter)
                     next(s_iter)
                 else:
+                    if any(a in x for a in ("\'", "\"", "\'\'")):
+                        if in_quotes:
+                            in_quotes = False
+                            continue
+                        else:
+                            in_quotes = True
+                            continue
+
                     # Make sure that the potential variable is not a digit
                     # and has no quotes or ampersand:
                     if (not x.strip("\n").isdigit()) and \
-                       not any(a in x for a in (".", "\'", "\"", "&")):
+                       not any(a in x for a in (".", "&")) and not in_quotes:
                         variable = x.strip("\n")
 
                     # Make sure it has some length, and is not in the
@@ -448,6 +462,7 @@ def add_undeclared_variables(rawdata: List[str],
     new_integers.append("\n")
     new_floats.append("\n")
     new_variables_to_add = new_integers + new_floats
+    print("New floats to add:", new_floats)
 
     # Add declared missed variables to raw data after an "implicit none"
     # declaration:
