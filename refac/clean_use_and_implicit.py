@@ -244,6 +244,8 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
     # Initiate boolean to discern if variable is within quotes:
     in_quotes = False
+    double_quote = False
+    quoted_sign = ""
 
     # Exclude keywords all variables imported by the use statements:
     for s in scope.module:
@@ -284,32 +286,51 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                 if x.strip("\n") == "call":
                     next(s_iter)
                     next(s_iter)
-                else:
-                    if any(a in x[0] for a in ("\'", "\"", "\'\'")):
 
-                        # Remove single quoted words, e.g.: 'unformated'
-                        if any(a in x[-1] for a in ("\'", "\"", "\'\'")):
-                            continue
-
-                        if in_quotes:
-                            in_quotes = False
-                            continue
+                # Deal with quotes:
+                if not in_quotes:
+                    if x[0] == "\'":
+                        if len(x) > 1:
+                            if x[:2] == "\'\'":
+                                quoted_sign = "\'\'"
+                                double_quote = True
                         else:
-                            in_quotes = True
-                            continue
+                            quoted_sign = "\'"
+                    if x[0] == "\"":
+                        quoted_sign = "\""
 
-                    # Make sure that the potential variable is not a digit
-                    # and has no quotes or ampersand:
-                    if (not x.strip("\n").isdigit()) and \
-                       not any(a in x for a in (".", "&")) and not in_quotes:
-                        variable = x.strip("\n")
+                    if quoted_sign:
+                        in_quotes = True
+                else:
+                    if len(x) > 1:
+                        if double_quote:
+                            if x[-2:] == quoted_sign:
+                                in_quotes = False
+                                double_quote = False
+                                quoted_sign = ""
+                        else:
+                            if x[-1:] == quoted_sign and x[-2:] != "\'\'":
+                                in_quotes = False
+                                quoted_sign = ""
+                    else:
+                        if x[-1:] == quoted_sign:
+                            in_quotes = False
+                            quoted_sign = ""
 
-                    # Make sure it has some length, and is not in the
-                    # exclude list:
-                        if len(variable) > 0 and variable.lower() \
-                           not in exclude:
-                            s_copy.append(variable)
-                            bulky_var.append(s_copy)
+                # Make sure that the potential variable is not a digit
+                # and has no point or ampersand, and single qouted words,
+                # e.g.: 1.d0, 'mpi_dmc_2', ...:
+                if (not x.strip("\n").isdigit()) and \
+                   not any(a in x for a in (".", "&", "\'", "\"")) \
+                   and not in_quotes:
+                    variable = x.strip("\n")
+
+                # Make sure it has some length, and is not in the
+                # exclude list:
+                    if len(variable) > 0 and variable.lower() \
+                       not in exclude:
+                        s_copy.append(variable)
+                        bulky_var.append(s_copy)
 
     # Finish by deleting redundancies:
     scope.bulky_var = (list(dict.fromkeys(flatten_string_list(bulky_var))))
@@ -427,7 +448,7 @@ def add_undeclared_variables(rawdata: List[str],
         new_integer_line = False
         new_float_line = False
 
-        for var in scope.bulky_var:
+        for var in sorted(scope.bulky_var):
             integer_variables = string.ascii_lowercase[8:14]
             # Collect potential integer variables:
             if var[0] in integer_variables:
