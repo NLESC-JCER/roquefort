@@ -25,6 +25,16 @@ Run tests (including coverage) with:
 
   python setup.py test
 
+Usage
+*************
+To remove implicit real statements:
+
+.. code-block:: console
+python ~/refac/refac/clean_use_and_implicit.py --clean_implicit src/dmc/mc_configs.f
+
+To clean variables in use statements:
+
+python ~/refac/refac/clean_use_and_implicit.py --clean_use src/dmc/mc_configs.f
 
 Documentation
 *************

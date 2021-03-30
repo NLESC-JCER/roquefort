@@ -258,42 +258,47 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
     # Analyse the whole scope.data:
     bulky_var = []  # carry all the selected variables in scope.data.
-    for s in scope.data:
-        s_copy = []    # carry the selected variables per scope.data line.
 
-        if len(s) == 0:
+    for sd in scope.data:
+        sd_copy = []    # carry the selected variables per scope.data line.
+        sd_strip = []   # a copy of sd without ending lines.
+
+        for var in sd:
+            sd_strip.append(var.strip("\n"))
+
+        if len(sd_strip) == 0:
             continue
 
-        if len(s) == 2 and s[0] == "use":  # avoid use without only statements.
+        # Avoid use without only statements:
+        if len(sd_strip) == 2 and sd_strip[0] == "use":
             continue
 
-        if len(s) >= 2:
+        if len(sd_strip) >= 2:
 
-            if s[0] in avoid_analysis:
+            if sd_strip[0] in avoid_analysis:
                 continue
 
             # Add variables declared as characters to the exclude list:
-            if s[0].lower() == "character":
-                character_var = [x.strip("\n") for x in s[1:] if not x.isdigit()]
-                print("Pablo says exclude:", exclude)
+            if sd_strip[0].lower() == "character":
+                character_var = [x for x in sd_strip[1:] if not x.isdigit()]
                 exclude.extend(character_var)
 
             starting_point = 0
 
             # Exclude xxx in call to subroutines/functions like "call xxx":
-            if s[0] == "call" or s[0] == "entry":
+            if sd_strip[0] == "call" or sd_strip[0] == "entry":
                 starting_point = 2
 
             # Exclude xxx in call to subroutines/functions like "21 call xxx":
-            if s[0].isdigit() or s[0] == "&" and s[1] == "call":
+            if (sd_strip[0].isdigit() or sd_strip[0] == "&") and \
+               sd_strip[1] == "call":
                 starting_point = 3
 
             # Start the main loop:
-            s_iter = iter(s[starting_point:])
+            s_iter = iter(x for x in sd_strip[starting_point:] if len(x))
             for x in s_iter:
-                print("Pablo says x, in_quotes, quoted_sig", x, in_quotes, quoted_sign)
                 # Skip xxx variables in lines like: if() call xxx():
-                if x.strip("\n") == "call":
+                if x == "call":
                     next(s_iter)
                     next(s_iter)
 
@@ -333,17 +338,17 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                 # Make sure that the potential variable is not a digit
                 # and has no point or ampersand, and is not a single-quoted
                 # word or quoted text:
-                if (not x.strip("\n").isdigit()) and \
+                if (not x.isdigit()) and \
                    not any(a in x for a in (".", "&", "\'", "\"")) \
                    and not in_quotes:
-                    variable = x.strip("\n")
+                    variable = x
 
                 # Make sure it has some length, and is not in the
                 # exclude list:
                     if len(variable) > 0 and variable.lower() \
                        not in exclude:
-                        s_copy.append(variable)
-                        bulky_var.append(s_copy)
+                        sd_copy.append(variable)
+                        bulky_var.append(sd_copy)
 
     # Finish by deleting redundancies:
     scope.bulky_var = (list(dict.fromkeys(flatten_string_list(bulky_var))))
