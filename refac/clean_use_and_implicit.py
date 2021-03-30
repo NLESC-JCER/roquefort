@@ -30,6 +30,8 @@ def split_string(s: str,
                  |\+ | \+|\+|
                  |\( | \(|\(|
                  |\) | \)|\)|
+                 |\> | \>|\>|
+                 |\< | \<|\<|
                  |/ | /|/|
                  |\.eq\.|
                  |\.lt\.|
@@ -229,15 +231,17 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     """
     # Avoid lines with the following starting-words:
     avoid_analysis = ["implicit", "subroutine", "program", "endif", "enddo",
-                      "return", "continue", "!", "c", "C", "use", "\n"]
+                      "return", "continue", "!", "c", "C", "function", "use",
+                      "\n"]
 
     # Avoid Fortran keywords that are not variables:
     exclude = ["&", "dimension", "parameter", "if", "endif", "else", "elseif",
                "end", "open", "close", "do", "call", "write", "goto", "enddo",
                "then", "to", "return", "min", "max", "nint", "abs", "float",
                "data", "log", "dlog", "exp", "dexp", "mod", "sign", "int",
-               "status", "form", "file", "unit",
-               "dfloat", "dsqrt", "sqrt", "continue",
+               "status", "form", "file", "unit", "read", "save", "rewind",
+               "character",
+               "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision",
                "\n"]
@@ -267,6 +271,12 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
             if s[0] in avoid_analysis:
                 continue
+
+            # Add variables declared as characters to the exclude list:
+            if s[0].lower() == "character":
+                character_var = [x.strip("\n") for x in s[1:] if not x.isdigit()]
+                print("Pablo says exclude:", exclude)
+                exclude.extend(character_var)
 
             starting_point = 0
 
