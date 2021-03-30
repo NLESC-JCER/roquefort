@@ -291,21 +291,24 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
             # Start the main loop:
             s_iter = iter(s[starting_point:])
             for x in s_iter:
-
+                print("Pablo says x, in_quotes, quoted_sig", x, in_quotes, quoted_sign)
                 # Skip xxx variables in lines like: if() call xxx():
                 if x.strip("\n") == "call":
                     next(s_iter)
                     next(s_iter)
 
-                # Deal with quotes:
+                # Deal with quotes ', '', ":
                 if not in_quotes:
                     if x[0] == "\'":
                         if len(x) > 1:
                             if x[:2] == "\'\'":
                                 quoted_sign = "\'\'"
                                 double_quote = True
+                            else:
+                                quoted_sign = "\'"
                         else:
                             quoted_sign = "\'"
+
                     if x[0] == "\"":
                         quoted_sign = "\""
 
@@ -328,8 +331,8 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                             quoted_sign = ""
 
                 # Make sure that the potential variable is not a digit
-                # and has no point or ampersand, and single qouted words,
-                # e.g.: 1.d0, 'mpi_dmc_2', ...:
+                # and has no point or ampersand, and is not a single-quoted
+                # word or quoted text:
                 if (not x.strip("\n").isdigit()) and \
                    not any(a in x for a in (".", "&", "\'", "\"")) \
                    and not in_quotes:
