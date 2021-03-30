@@ -246,9 +246,10 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "mpi_comm_world", "mpi_double_precision",
                "\n"]
 
-    # Initiate boolean to discern if variable is within quotes:
+    # Initiate booleans to discern quotes:
     in_quotes = False
     double_quote = False
+    quoted_one_word = False
     quoted_sign = ""
 
     # Exclude keywords all variables imported by the use statements:
@@ -319,6 +320,13 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
                     if quoted_sign:
                         in_quotes = True
+
+                    # Deal with quoted one-words:
+                    if len(x) > 2:
+                        if double_quote and x[-2:] == quoted_sign:
+                            quoted_one_word = True
+                        if (not double_quote) and x[-1:] == quoted_sign:
+                            quoted_one_word = True
                 else:
                     if len(x) > 1:
                         if double_quote:
@@ -349,6 +357,14 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                        not in exclude:
                         sd_copy.append(variable)
                         bulky_var.append(sd_copy)
+
+                # Reset booleans if x is a quoted_one_word:
+                if quoted_one_word:
+                    quoted_one_word = False
+                    in_quotes = False
+                    if double_quote:
+                        double_quote = False
+                    quoted_sign = ""
 
     # Finish by deleting redundancies:
     scope.bulky_var = (list(dict.fromkeys(flatten_string_list(bulky_var))))
@@ -453,16 +469,18 @@ def add_undeclared_variables(rawdata: List[str],
     Returns:
         List[str]: [description]
     """
+    # List of integers and floats to add:
+    new_integers = ['      integer', ' :: ']
+    new_floats = ['      real(dp)', ' :: ']
+
     # Declare missed variables:
     if len(scope.bulky_var):
 
         new_variables_to_add = []  # Carries the declaration of new variables.
-        new_integers = ['      integer', ' :: ']
-        new_floats = ['      real(dp)', ' :: ']
 
         index_integer = 1
         index_float = 1
-        max_line_length = 15
+        max_line_length = 10
         new_integer_line = False
         new_float_line = False
 
