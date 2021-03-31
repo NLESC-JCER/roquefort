@@ -32,6 +32,7 @@ def split_string(s: str,
                  |\) | \)|\)|
                  |\> | \>|\>|
                  |\< | \<|\<|
+                 |\$ | \$|\$|
                  |/ | /|/|
                  |\.eq\.|
                  |\.lt\.|
@@ -224,7 +225,7 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "end", "open", "close", "do", "call", "write", "goto", "enddo",
                "then", "to", "return", "min", "max", "nint", "abs", "float",
                "data", "log", "dlog", "exp", "dexp", "mod", "sign", "int",
-               "status", "form", "file", "unit", "read", "save", "rewind",
+               "status", "format", "file", "unit", "read", "save", "rewind",
                "character",
                "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
