@@ -96,22 +96,6 @@ def replace_ampersand(rawdata: List[str]) -> List[List[str]]:
     return rawdata
 
 
-def remove_use_without_only(rawdata: List[str]) -> List[List[str]]:
-    """Remove the "use" lines without a "only" statement.
-
-    Args:
-        rawdata (List[str]): [description]
-
-    Returns:
-        List[List[str]]: [description]
-    """
-    for rd in rawdata:
-        if len(rd) > 0:
-            if rd.lstrip(' ').startswith('use') and "only" not in rd:
-                rawdata.remove(rd)
-    return rawdata
-
-
 def substitute_implicit_real(rawdata: List[str]) -> List[List[str]]:
     """Substitute 'implicit real*8(a-h,o-z)' by 'implicit none'
 
