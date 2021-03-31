@@ -459,46 +459,47 @@ def add_undeclared_variables(rawdata: List[str],
     new_floats = ['      real(dp)', ' :: ']
 
     # Declare missed variables:
-    if len(scope.bulky_var):
+    new_variables_to_add = []  # Carries the declaration of new variables.
 
-        new_variables_to_add = []  # Carries the declaration of new variables.
+    index_integer = 1
+    index_float = 1
+    max_line_length = 10
+    new_integer_line = False
+    new_float_line = False
 
-        index_integer = 1
-        index_float = 1
-        max_line_length = 10
-        new_integer_line = False
-        new_float_line = False
+    for var in sorted(scope.bulky_var):
+        integer_variables = string.ascii_lowercase[8:14]
 
-        for var in sorted(scope.bulky_var):
-            integer_variables = string.ascii_lowercase[8:14]
-            # Collect potential integer variables:
-            if var[0] in integer_variables:
-                if len(new_integers) >= max_line_length * index_integer:
-                    index_integer += 1
-                    new_integers.extend(["\n", '      integer', ' :: '])
-                    new_integer_line = True
-                if len(new_integers) > 2:
-                    if new_integer_line:
-                        new_integers.extend([var])
-                        new_integer_line = False
-                    else:
-                        new_integers.extend([", ", var])
-                else:
+        # Collect potential integer variables:
+        if var[0] in integer_variables:
+            if len(new_integers) >= max_line_length * index_integer:
+                index_integer += 1
+                new_integers.extend(["\n", '      integer', ' :: '])
+                new_integer_line = True
+
+            if len(new_integers) > 2:
+                if new_integer_line:
                     new_integers.extend([var])
-            # Collect potential float variables:
-            else:
-                if len(new_floats) >= max_line_length * index_float:
-                    index_float += 1
-                    new_floats.extend(["\n", '      real(dp)', ' :: '])
-                    new_float_line = True
-                if len(new_floats) > 2:
-                    if new_float_line:
-                        new_floats.extend([var])
-                        new_float_line = False
-                    else:
-                        new_floats.extend([", ", var])
+                    new_integer_line = False
                 else:
+                    new_integers.extend([", ", var])
+            else:
+                new_integers.extend([var])
+        # Collect potential float variables:
+        else:
+            if len(new_floats) >= max_line_length * index_float:
+                index_float += 1
+                new_floats.extend(["\n", '      real(dp)', ' :: '])
+                new_float_line = True
+
+            if len(new_floats) > 2:
+                if new_float_line:
                     new_floats.extend([var])
+                    new_float_line = False
+                else:
+                    new_floats.extend([", ", var])
+            else:
+                new_floats.extend([var])
 
     # Empty the list if there are not elements:
     if len(new_integers) == 2:
@@ -622,9 +623,12 @@ def clean_statements(args: argparse.ArgumentParser) -> \
 
         # add undeclared variables:
         if args.clean_implicit:
-            rawdata = add_undeclared_variables(rawdata, scope, index)
+            if len(scope.bulky_var):
+                rawdata = add_undeclared_variables(rawdata, scope, index)
+            else:
+                print('      No potential variables found in the scope.')
 
-        print('    ... done!')
+        print('    ... done!\n')
     # save file copy
     if args.overwrite:
         save_file(args.filename, rawdata)
