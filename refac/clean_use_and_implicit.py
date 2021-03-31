@@ -226,7 +226,7 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "then", "to", "return", "min", "max", "nint", "abs", "float",
                "data", "log", "dlog", "exp", "dexp", "mod", "sign", "int",
                "status", "format", "file", "unit", "read", "save", "rewind",
-               "character",
+               "character", "backspace",
                "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision",
