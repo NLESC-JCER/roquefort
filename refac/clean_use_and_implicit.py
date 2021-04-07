@@ -112,6 +112,23 @@ def substitute_implicit_real(rawdata: List[str]) -> List[List[str]]:
     return rawdata
 
 
+def delete_parameters(rawdata: List[str]) -> List[List[str]]:
+    """Delete lines starting with the word paramter, e.g:
+       paramter(zero =0.d0, one=1.0d0)
+
+    Args:
+        rawdata (List[str]): [description]
+
+    Returns:
+        List[List[str]]: [description]
+    """
+    rawdata = [rd for rd in rawdata if not( 
+               rd.lstrip(" ").startswith("parameter")
+               and len(rd.lstrip(" ")) > 9)]
+
+    return rawdata
+
+
 def process_data(rawdata: List[str], clean_implicit: bool) -> List[List[str]]:
     """Split the raw data into chunks
 
@@ -158,7 +175,7 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
             idx_end.append(i)
 
     return [SimpleNamespace(name=name, istart=istart,
-            data=data[istart:iend], module=[], bulky_var=[])
+            data=data[istart:iend], module=[], parameters=[], bulky_var=[])
             for name, istart, iend in zip(name, idx_start, idx_end)]
 
 
@@ -200,6 +217,38 @@ def find_import_var(scope: SimpleNamespace) -> SimpleNamespace:
     return scope
 
 
+def find_parameters(scope: SimpleNamespace) -> SimpleNamespace:
+    """
+    Populate scope.parameters = list[] with parameter-declared variables.
+    E.g.: 'parameter(zero=0.d0, one=1.d0)'
+
+    Args:
+        :param scope: Namespace containing the data.
+
+    Returns:
+        :return scope: Return the same SimpleNamespace with the
+                       scope.parameters attribute populated by a simple
+                       list[] containing all the variables declared as
+                       parameters.
+    """
+    for sd in scope.data:
+        if sd[0].lower() == "parameter":
+            sd_strip = []   # a copy of sd without ending lines.
+            bulky_parameters = []   # parameters found per line.
+            starting_point = 1
+            for var in sd:
+                sd_strip.append(var.strip("\n"))
+
+            # Start the main loop:
+            s_iter = iter(x for x in sd_strip[starting_point:] if len(x))
+            for x in s_iter:
+                bulky_parameters.append(x)
+
+    # Finish by deleting redundancies:
+    scope.parameters = (list(dict.fromkeys(bulky_parameters)))
+    return scope
+
+
 def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     """
     Filter variables in the bulky scope.data that are not imported by
@@ -238,10 +287,14 @@ def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     quoted_one_word = False
     quoted_sign = ""
 
-    # Exclude keywords all variables imported by the use statements:
+    # Exclude all variables imported by the use statements:
     for s in scope.module:
         for v in s.var:
             exclude.append(v.name.lower())
+
+    # Exclude all variables declared as parameters:
+    for s in scope.parameters:
+        exclude.append(s)
 
     # Analyse the whole scope.data:
     bulky_var = []  # carry all the selected variables in scope.data.
@@ -458,6 +511,7 @@ def add_undeclared_variables(rawdata: List[str],
     # List of integers and floats to add:
     new_integers = ['      integer', ' :: ']
     new_floats = ['      real(dp)', ' :: ']
+    new_float_parameters = []
 
     # Declare missed variables:
     new_variables_to_add = []  # Carries the declaration of new variables.
@@ -486,6 +540,7 @@ def add_undeclared_variables(rawdata: List[str],
                     new_integers.extend([", ", var])
             else:
                 new_integers.extend([var])
+
         # Collect potential float variables:
         else:
             if len(new_floats) >= max_line_length * index_float:
@@ -508,10 +563,19 @@ def add_undeclared_variables(rawdata: List[str],
     if len(new_floats) == 2:
         new_floats = []
 
+    # Add variables declared as parameters:
+    if len(scope.parameters):
+        for index_sp in range(0, len(scope.parameters), 2):
+            new_float_parameters.extend([
+                '      real(dp)', ', ', 'parameter', ' :: ',
+                scope.parameters[index_sp], " = ",
+                scope.parameters[index_sp+1],
+                "\n"])
+
     # Add final new line and combine:
     new_integers.append("\n")
     new_floats.append("\n")
-    new_variables_to_add = new_integers + new_floats
+    new_variables_to_add = new_integers + new_floats + new_float_parameters
 
     # Add declared missed variables to raw data after an "implicit none"
     # declaration:
@@ -613,6 +677,7 @@ def clean_statements(args: argparse.ArgumentParser) -> \
 
         # Find possible variables on the bulky of the scope:
         if args.clean_implicit:
+            scope = find_parameters(scope)
             scope = find_bulky_var(scope)
 
         if args.clean_use:
@@ -626,10 +691,12 @@ def clean_statements(args: argparse.ArgumentParser) -> \
         if args.clean_implicit:
             if len(scope.bulky_var):
                 rawdata = add_undeclared_variables(rawdata, scope, index)
+                rawdata = delete_parameters(rawdata)
             else:
                 print('      No potential variables found in the scope.')
 
         print('    ... done!\n')
+
     # save file copy
     if args.overwrite:
         save_file(args.filename, rawdata)
