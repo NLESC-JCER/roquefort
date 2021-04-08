@@ -231,10 +231,10 @@ def find_parameters(scope: SimpleNamespace) -> SimpleNamespace:
                        list[] containing all the variables declared as
                        parameters.
     """
+    bulky_parameters = []   # parameters found per line.
     for sd in scope.data:
         if sd[0].lower() == "parameter":
             sd_strip = []   # a copy of sd without ending lines.
-            bulky_parameters = []   # parameters found per line.
             starting_point = 1
             for var in sd:
                 sd_strip.append(var.strip("\n"))
@@ -511,6 +511,7 @@ def add_undeclared_variables(rawdata: List[str],
     # List of integers and floats to add:
     new_integers = ['      integer', ' :: ']
     new_floats = ['      real(dp)', ' :: ']
+    new_integer_parameters = []
     new_float_parameters = []
 
     # Declare missed variables:
@@ -565,17 +566,29 @@ def add_undeclared_variables(rawdata: List[str],
 
     # Add variables declared as parameters:
     if len(scope.parameters):
-        for index_sp in range(0, len(scope.parameters), 2):
-            new_float_parameters.extend([
-                '      real(dp)', ', ', 'parameter', ' :: ',
-                scope.parameters[index_sp], " = ",
-                scope.parameters[index_sp+1],
-                "\n"])
-
+        if (len(scope.parameters) % 2 == 0):
+            for index_sp in range(0, len(scope.parameters), 2):
+                if scope.parameters[index_sp][0] in integer_variables:
+                    new_integer_parameters.extend([
+                        '      integer', ', ', 'parameter', ' :: ',
+                        scope.parameters[index_sp], " = ",
+                        scope.parameters[index_sp+1],
+                        "\n"])
+                else:
+                    new_float_parameters.extend([
+                        '      real(dp)', ', ', 'parameter', ' :: ',
+                        scope.parameters[index_sp], " = ",
+                        scope.parameters[index_sp+1],
+                        "\n"])
+        else:
+            print("WARNING --- parameter declaration not resolved")
+            print("            is there any special character (*, +, / ..)? \n")
     # Add final new line and combine:
     new_integers.append("\n")
     new_floats.append("\n")
-    new_variables_to_add = new_integers + new_floats + new_float_parameters
+    new_variables_to_add = new_integers + new_floats \
+                                        + new_float_parameters \
+                                        + new_integer_parameters
 
     # Add declared missed variables to raw data after an "implicit none"
     # declaration:
