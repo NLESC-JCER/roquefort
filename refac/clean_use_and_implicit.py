@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from types import SimpleNamespace
+from argparse import RawTextHelpFormatter
 from typing import List, Optional, Tuple
 import string
 import argparse
@@ -671,11 +672,19 @@ def clean_statements(args: argparse.ArgumentParser) -> \
     print('= Clean Use Statements from %s' % args.filename)
     print('=')
 
+    clean_use = False
+    clean_implicit = False
+
+    if args.command == "clean_use":
+        clean_use = True
+    elif args.command == "clean_implicit":
+        clean_implicit = True
+
     # read the data file and split it
     rawdata = read_file(args.filename)
 
     # Prepare data to be splitted in scopes, remove &'s, implicit real, etc:
-    data = process_data(rawdata, args.clean_implicit)
+    data = process_data(rawdata, clean_implicit)
 
     # separate in scope
     scoped_data = separate_scope(data)
@@ -689,11 +698,10 @@ def clean_statements(args: argparse.ArgumentParser) -> \
         scope = find_import_var(scope)
 
         # Find possible variables on the bulky of the scope:
-        if args.clean_implicit:
+        if clean_implicit:
             scope = find_parameters(scope)
             scope = find_bulky_var(scope)
-
-        if args.clean_use:
+        if clean_use:
             # Count the number of var calls per var per module in scope:
             scope = count_var(scope)
 
@@ -701,7 +709,7 @@ def clean_statements(args: argparse.ArgumentParser) -> \
             rawdata = clean_raw_data(rawdata, scope)
 
         # add undeclared variables:
-        if args.clean_implicit:
+        if clean_implicit:
             if len(scope.bulky_var):
                 rawdata = add_undeclared_variables(rawdata, scope, index)
                 rawdata = delete_parameters(rawdata)
@@ -718,43 +726,3 @@ def clean_statements(args: argparse.ArgumentParser) -> \
         save_file(new_filename, rawdata)
 
     return scoped_data
-
-
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(description="clean 'use' or \
-                                     'implicit real' statements in filename")
-
-    parser.add_argument("filename", help="name of the file to clean")
-
-    # Clean of "use" statements:
-    parser.add_argument(
-        '--clean_use', action='store_true',
-        help="clean variables not use in 'use' statements")
-
-    # Replace "implicit real" by "implicit none":
-    parser.add_argument(
-        '--clean_implicit', action='store_true',
-        help="replace 'implicit real' by 'implicit none' statements")
-
-    # Overwrite the file?
-    parser.add_argument(
-        '-ow', '--overwrite', action='store_true',
-        help='overwrite the inputfile')
-
-    args = parser.parse_args()
-
-# Do a clean_use by default?
-#    if args.clean_use + args.clean_implicit == 0:
-#        args.clean_use = True
-
-    if (args.clean_use and args.clean_implicit):
-        raise parser.error("\nChoose only one action:"
-                           " --clean_use or --clean_implicit")
-
-    elif (args.clean_use or args.clean_implicit):
-        scope = clean_statements(args)
-
-    else:
-        raise parser.error("\nChoose an argument action:"
-                           " --clean_use or --clean_implicit")

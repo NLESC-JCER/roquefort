@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 
-import argparse
 import re
 import string
 from itertools import chain, takewhile
 from pathlib import Path
-
 from pyparsing import (Char, Group, Literal, OneOrMore, Word, ZeroOrMore,
                        alphanums)
 from typing import List, Optional, Tuple
@@ -440,20 +438,3 @@ def get_src_files(path: Path, folder: str):
     vmc_path = path / f"src/{folder}"
     return chain(sorted(vmc_path.glob("*.f")), sorted(vmc_path.glob("*.h")))
 
-
-def main():
-    """Parse the command line arguments."""
-    parser = argparse.ArgumentParser(
-        description="refactor -n <common block name> -p folder_path")
-    # configure logger
-    parser.add_argument('-n', required=True,
-                        help="Common block name")
-    parser.add_argument('-p', help="path to champ", default=".")
-    args = parser.parse_args()
-
-    rs = Refactor(args.n, Path(args.p))
-    rs.refactor()
-
-
-if __name__ == "__main__":
-    main()
