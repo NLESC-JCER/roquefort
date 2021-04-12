@@ -93,7 +93,7 @@ def clean_statements(args: argparse.ArgumentParser) -> \
     # separate in scope
     scopes = separate_scope(data)
 
-    # fill attributes of scopes in scoped_data:
+    # fill attributes of scopes:
     fill_scopes(rawdata, scopes, clean_use, clean_implicit)
 
     # save file copy

@@ -57,12 +57,12 @@ def fill_scopes(rawdata: List[str], scopes: List[SimpleNamespace],
         print('  - Scope : %s' % scope.name)
 
         # Find variables in use statements:
-        scope = find_import_var(scope)
+        scope = fill_module(scope)
 
         # Find possible variables on the bulky of the scope:
         if clean_implicit:
-            scope = find_parameters(scope)
-            scope = find_bulky_var(scope)
+            scope = fill_parameters(scope)
+            scope = fill_bulky_var(scope)
         if clean_use:
             # Count the number of var calls per var per module in scope:
             scope = count_var(scope)
@@ -82,7 +82,7 @@ def fill_scopes(rawdata: List[str], scopes: List[SimpleNamespace],
     return scopes
 
 
-def find_import_var(scope: SimpleNamespace) -> SimpleNamespace:
+def fill_module(scope: SimpleNamespace) -> SimpleNamespace:
     """
     Populate scope.module = SimpleNamespace with imported variables via
     'use' statements:
@@ -120,7 +120,7 @@ def find_import_var(scope: SimpleNamespace) -> SimpleNamespace:
     return scope
 
 
-def find_parameters(scope: SimpleNamespace) -> SimpleNamespace:
+def fill_parameters(scope: SimpleNamespace) -> SimpleNamespace:
     """
     Populate scope.parameters = list[] with parameter-declared variables.
     E.g.: 'parameter(zero=0.d0, one=1.d0)'
@@ -152,7 +152,7 @@ def find_parameters(scope: SimpleNamespace) -> SimpleNamespace:
     return scope
 
 
-def find_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
+def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     """
     Filter variables in the bulky scope.data that are not imported by
     the use statements.
