@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+""" Parser of arguments. """
 from refac.clean_common import Refactor
 from refac.clean_use_and_implicit import clean_statements
 from pathlib import Path
