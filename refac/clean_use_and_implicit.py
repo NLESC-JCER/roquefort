@@ -2,7 +2,7 @@
 from types import SimpleNamespace
 from typing import List
 from refac.io_utils import read_file, save_file, get_new_filename
-from refac.scope_utils import separate_scope, fill_scopes
+from refac.scope_utils import separate_scope, fill_scopes, modify_rawdata
 from refac.string_utils import split_string
 import argparse
 
@@ -84,17 +84,20 @@ def clean_statements(args: argparse.ArgumentParser) -> \
     elif args.command == "clean_implicit":
         clean_implicit = True
 
-    # read the data file and split it
+    # Read the data file and split it:
     rawdata = read_file(args.filename)
 
     # Prepare data to be splitted in scopes, remove &'s, implicit real, etc:
     data = process_data(rawdata, clean_implicit)
 
-    # separate in scope
+    # Separate in scope:
     scopes = separate_scope(data)
 
-    # fill attributes of scopes:
-    fill_scopes(rawdata, scopes, clean_use, clean_implicit)
+    # Fill attributes of scopes:
+    scopes = fill_scopes(rawdata, scopes, clean_implicit)
+
+    # Modify rawdata according to scopes and flag options:
+    modify_rawdata(rawdata, scopes, clean_use, clean_implicit)
 
     # save file copy
     if args.overwrite:

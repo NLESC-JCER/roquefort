@@ -40,29 +40,48 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
 
 
 def fill_scopes(rawdata: List[str], scopes: List[SimpleNamespace],
-                clean_use: bool,
                 clean_implicit: bool) -> List[SimpleNamespace]:
     """Fills attributes of SimpleNamespace scopes.
 
-    :param scopes: List of scopes.
+    :param rawdata: List of the bulky content of the read file.
 
-    :param clean_use: Boolean to clean or not the variables in the
-                      use statements.
+    :param scopes: List of scopes.
 
     :param clean_implicit: Boolean to replace or not the implicit real.
 
     :param return: List of entry scopes with attributes populated.
     """
-    for index, scope in enumerate(scopes):
-        print('  - Scope : %s' % scope.name)
+    for scope in scopes:
 
         # Find variables in use statements:
+        print('  - Filling module of scope: %s' % scope.name)
         scope = fill_module(scope)
 
         # Find possible variables on the bulky of the scope:
         if clean_implicit:
+            print('  - Filling parameters of scope: %s' % scope.name)
+            print('  - Filling bulky_var of scope: %s' % scope.name)
             scope = fill_parameters(scope)
             scope = fill_bulky_var(scope)
+
+    return scopes
+
+
+def modify_rawdata(rawdata: List[str], scopes: List[SimpleNamespace],
+                   clean_use: bool,
+                   clean_implicit: bool):
+    """ Modify rawdata input according to scopes and argument flags.
+
+    :param rawdata: List of the bulky content of the read file.
+
+    :param scopes: List of scopes.
+
+    :param clean_use: Boolean to replace or not the implicit real.
+
+    :param clean_implicit: Boolean to replace or not the implicit real.
+    """
+    for index, scope in enumerate(scopes):
+        print('  - Modifying rawdata of scope: %s' % scope.name)
         if clean_use:
             # Count the number of var calls per var per module in scope:
             scope = count_var(scope)
@@ -79,7 +98,7 @@ def fill_scopes(rawdata: List[str], scopes: List[SimpleNamespace],
                 print('      No potential variables found in the scope.')
 
         print('    ... done!\n')
-    return scopes
+    return
 
 
 def fill_module(scope: SimpleNamespace) -> SimpleNamespace:
