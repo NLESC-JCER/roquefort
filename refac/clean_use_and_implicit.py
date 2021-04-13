@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from typing import List
 from refac.io_utils import read_file, save_file, get_new_filename
 from refac.scope_utils import separate_scope, fill_scopes, modify_rawdata
-from refac.string_utils import split_string
+from refac.string_utils import split_rawdata
 import argparse
 
 
@@ -56,8 +56,8 @@ def process_data(rawdata: List[str], clean_implicit: bool) -> List[List[str]]:
     if clean_implicit:
         rawdata = replace_implicit_real(rawdata)
     rawdata = replace_ampersand(rawdata)
-
-    return [split_string(rd) if len(rd) > 0 else rd for rd in rawdata]
+    rawdata = split_rawdata(rawdata)
+    return rawdata
 
 
 def clean_statements(args: argparse.ArgumentParser) -> \
