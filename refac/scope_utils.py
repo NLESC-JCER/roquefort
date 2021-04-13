@@ -53,15 +53,16 @@ def fill_scopes(rawdata: List[str], scopes: List[SimpleNamespace],
     """
     for scope in scopes:
 
+        print('  - Adding scope: %s' % scope.name)
         # Find variables in use statements:
-        print('  - Filling module of scope: %s' % scope.name)
+        print('  \t+ Filling module attribute.')
         scope = fill_module(scope)
 
         # Find possible variables on the bulky of the scope:
         if clean_implicit:
-            print('  - Filling parameters of scope: %s' % scope.name)
-            print('  - Filling bulky_var of scope: %s' % scope.name)
+            print('  \t+ Filling parameters attribute.')
             scope = fill_parameters(scope)
+            print('  \t+ Filling bulky_var attribute.\n')
             scope = fill_bulky_var(scope)
 
     return scopes
@@ -95,6 +96,7 @@ def modify_rawdata(rawdata: List[str], scopes: List[SimpleNamespace],
         if clean_implicit:
             if len(scope.bulky_var):
                 rawdata = add_undeclared_variables(rawdata, scope, index)
+                rawdata = add_use_precision_kinds(rawdata, scope, index)
                 rawdata = delete_parameters(rawdata)
             else:
                 print('      No potential variables found in the scope.')
@@ -190,7 +192,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     # Avoid lines with the following starting-words:
     avoid_analysis = ["implicit", "subroutine", "program", "endif", "enddo",
                       "return", "continue", "!", "c", "C", "function", "use",
-                      "go", "goto",
+                      "go", "goto", "include",
                       "\n"]
 
     # Avoid Fortran keywords that are not variables:
@@ -199,11 +201,11 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "then", "to", "return", "min", "max", "nint", "abs", "float",
                "data", "log", "dlog", "exp", "dexp", "mod", "sign", "int",
                "status", "format", "file", "unit", "read", "save", "rewind",
-               "character", "backspace",
+               "character", "backspace", "common",
                "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision",
-               "\n"]
+               "\t", "\n"]
 
     # Initiate booleans to discern quotes:
     in_quotes = False
@@ -423,7 +425,7 @@ def clean_raw_data(rawdata: List[str],
 def add_undeclared_variables(rawdata: List[str],
                              scope: SimpleNamespace, index: int) -> List[str]:
     """
-    Add undeclared variaables of a scope in rawdata. 
+    Add undeclared variaables of a scope in rawdata.
 
     :param rawdata: Entry rawdata to add undeclared variables to.
 
@@ -506,7 +508,7 @@ def add_undeclared_variables(rawdata: List[str],
                         scope.parameters[index_sp+1],
                         "\n"])
         else:
-            print("WARNING --- parameter declaration not resolved")
+            print("\n     WARNING --- parameter declaration not resolved")
             print("            is there any special character (*, +, / ..)? \n")
     # Add final new line and combine:
     new_integers.append("\n")
@@ -520,10 +522,54 @@ def add_undeclared_variables(rawdata: List[str],
     implicit_indexes = list_duplicates(rawdata, "implicit none")
     rawdata[implicit_indexes[index]+1:
             implicit_indexes[index]] = new_variables_to_add
+
+    # For future references, add new_variables_to_add to scope after
+    # the last 'use':
+    for sd_index, sd in enumerate(scope.data):
+        if sd[0] == 'use':
+            implicit_index = sd_index
+    scope.data.insert(implicit_index, new_variables_to_add)
     return rawdata
 
 
-def list_duplicates(seq, item):
+def add_use_precision_kinds(rawdata: List[str],
+                            scope: SimpleNamespace, index: int) -> List[str]:
+    """
+    Add 'use precision_kinds, only: dp' to rawdata and scope if a 'real(dp)'
+    declaration is found in scope.
+
+    :param rawdata: Entry rawdata.
+
+    :param scope: Scope to be queried.
+
+    :param index: index of scope in the precendent SimpleNamespace.
+
+    :return: Entry rawdata with the 'use precision_kinds' statement inserted.
+    """
+    new_floats = False  # True if a real(dp) is declared.
+    precision_kinds = False  # True if a 'use precision_kinds' is declared.
+
+    # Get indexes:
+    implicit_indexes = list_duplicates(rawdata, "implicit none")
+
+    # Discern if the addition is needed:
+    for sm in scope.data:
+        if "real(dp)" in [x.lstrip() for x in sm]:
+            new_floats = True
+    for sm in scope.module:
+        if 'precision_kinds' in sm.name:
+            precision_kinds = True
+
+    # Add statement to rawdata:
+    if new_floats and not precision_kinds:
+        use_statement = ["      use precision_kinds, only: dp\n"]
+        rawdata[implicit_indexes[index]-1:
+                implicit_indexes[index]] = use_statement
+
+    return rawdata
+
+
+def list_duplicates(seq: list, item: str):
     """Find indexes of duplicate items in a list.
 
     :param seq: Entry list[] to inspect.
@@ -534,7 +580,6 @@ def list_duplicates(seq, item):
     """
     start_at = -1
     indexes = []
-
     # Fist, strip and lowercase the entry list:
     seq_copy = [rd.lstrip().strip("\n").lower() for rd in seq]
 
