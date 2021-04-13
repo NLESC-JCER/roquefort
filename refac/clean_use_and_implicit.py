@@ -97,13 +97,14 @@ def clean_statements(args: argparse.ArgumentParser) -> \
     scopes = fill_scopes(rawdata, scopes, clean_implicit)
 
     # Modify rawdata according to scopes and flag options:
-    modify_rawdata(rawdata, scopes, clean_use, clean_implicit)
+    modified_rawdata = modify_rawdata(rawdata,
+                                      scopes, clean_use, clean_implicit)
 
     # save file copy
     if args.overwrite:
-        save_file(args.filename, rawdata)
+        save_file(args.filename, modified_rawdata)
     else:
         new_filename = get_new_filename(args.filename)
-        save_file(new_filename, rawdata)
+        save_file(new_filename, modified_rawdata)
 
     return scopes

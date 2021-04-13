@@ -69,7 +69,7 @@ def fill_scopes(rawdata: List[str], scopes: List[SimpleNamespace],
 
 def modify_rawdata(rawdata: List[str], scopes: List[SimpleNamespace],
                    clean_use: bool,
-                   clean_implicit: bool):
+                   clean_implicit: bool) -> List[str]:
     """ Modify rawdata input according to scopes and argument flags.
 
     :param rawdata: List of the bulky content of the read file.
@@ -79,6 +79,8 @@ def modify_rawdata(rawdata: List[str], scopes: List[SimpleNamespace],
     :param clean_use: Boolean to replace or not the implicit real.
 
     :param clean_implicit: Boolean to replace or not the implicit real.
+
+    :return: rawdata with modifications.
     """
     for index, scope in enumerate(scopes):
         print('  - Modifying rawdata of scope: %s' % scope.name)
@@ -98,7 +100,7 @@ def modify_rawdata(rawdata: List[str], scopes: List[SimpleNamespace],
                 print('      No potential variables found in the scope.')
 
         print('    ... done!\n')
-    return
+    return rawdata
 
 
 def fill_module(scope: SimpleNamespace) -> SimpleNamespace:
