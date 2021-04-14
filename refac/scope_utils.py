@@ -192,7 +192,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     # Avoid lines with the following starting-words:
     avoid_analysis = ["implicit", "subroutine", "program", "endif", "enddo",
                       "return", "continue", "!", "c", "C", "function", "use",
-                      "go", "goto", "include",
+                      "go", "goto", "include", "format",
                       "\n"]
 
     # Avoid Fortran keywords that are not variables:
@@ -259,6 +259,10 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
             if (sd_strip[0].isdigit() or sd_strip[0] == "&") and \
                sd_strip[1] == "call":
                 starting_point = 3
+
+            # Exclude lines like "20 format(....)": 
+            if sd_strip[0].isdigit() and sd_strip[1] == "format":
+                continue
 
             # Start the main loop:
             s_iter = iter(x for x in sd_strip[starting_point:] if len(x))
@@ -525,10 +529,17 @@ def add_undeclared_variables(rawdata: List[str],
 
     # For future references, add new_variables_to_add to scope after
     # the last 'use':
+    insert_index = 0
     for sd_index, sd in enumerate(scope.data):
         if sd[0] == 'use':
-            implicit_index = sd_index
-    scope.data.insert(implicit_index, new_variables_to_add)
+            insert_index = sd_index
+    # If there is not any 'use' statement, insert before a 'implicit':
+    if insert_index == 0:
+        for sd_index, sd in enumerate(scope.data):
+            if sd[0] == 'implicit':
+                insert_index = sd_index
+
+    scope.data.insert(insert_index, new_variables_to_add)
     return rawdata
 
 
@@ -563,7 +574,7 @@ def add_use_precision_kinds(rawdata: List[str],
     # Add statement to rawdata:
     if new_floats and not precision_kinds:
         use_statement = ["      use precision_kinds, only: dp\n"]
-        rawdata[implicit_indexes[index]-1:
+        rawdata[implicit_indexes[index]:
                 implicit_indexes[index]] = use_statement
 
     return rawdata
