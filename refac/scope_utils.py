@@ -260,18 +260,21 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                sd_strip[1] == "call":
                 starting_point = 3
 
-            # Exclude lines like "20 format(....)": 
+            # Exclude lines like "20 format(....)":
             if sd_strip[0].isdigit() and sd_strip[1] == "format":
                 continue
 
             # Start the main loop:
             s_iter = iter(x for x in sd_strip[starting_point:] if len(x))
             for x in s_iter:
-                # Skip xxx variables in lines like: if() call xxx():
+                # Skip xxx variables in lines like 'if() call xxx()':
                 if x == "call":
                     next(s_iter)
                     next(s_iter)
 
+                # Skip commented text, e.g. " ier = 0  ! nullify error":
+                if x == "!":
+                    break
                 # Deal with quotes ', '', ":
                 if not in_quotes:
                     if x[0] == "\'":
