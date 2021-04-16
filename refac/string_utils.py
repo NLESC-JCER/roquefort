@@ -8,9 +8,11 @@ def split_rawdata(rawdata: List[str]) -> List[str]:
     rawdata_split = []
     for rd in rawdata:
         if rd.lstrip(" ")[0:9] == "parameter":
-            rawdata_split.append(split_string_soft(rd))
+            rawdata_split.append(split_string_parameter(rd))
+        if rd.lstrip(" ")[0:9] == "dimension":
+            rawdata_split.append(split_string_dimension(rd))
         else:
-            rawdata_split.append(split_string_rough(rd))
+            rawdata_split.append(split_string_bulky(rd))
     return rawdata_split
 
 
@@ -26,20 +28,20 @@ def flatten_string_list(l: List[List[str]]) -> List[str]:
     return [item for sublist in l for item in sublist]
 
 
-def split_string_soft(s: str,
-                 delimiters:
-                 str =
-                 r''' |
-                 |, | ,|,|
-                 |: | :|:|
-                 |\= | \=|\=|
-                 |\( | \(|\(|
-                 |\) | \)|\)|
-                 |\> | \>|\>|
-                 |\< | \<|\<|
-                 |\$ | \$|\$|
-                  ''') ->\
-                 List[str]:
+def split_string_parameter(s: str,
+                           delimiters:
+                           str =
+                           r''' |
+                           |, | ,|,|
+                           |: | :|:|
+                           |\= | \=|\=|
+                           |\( | \(|\(|
+                           |\) | \)|\)|
+                           |\> | \>|\>|
+                           |\< | \<|\<|
+                           |\$ | \$|\$|
+                            ''') ->\
+                           List[str]:
     """Split a string using the regex delimiters
 
     Args:
@@ -54,32 +56,52 @@ def split_string_soft(s: str,
     return list(filter(None, split_str))
 
 
-def split_string_rough(s: str,
-                 delimiters:
-                 str =
-                 r''' |
-                 |, | ,|,|
-                 |: | :|:|
-                 |\= | \=|\=|
-                 |\* | \*|\*|
-                 |- | -|-|
-                 |\+ | \+|\+|
-                 |\( | \(|\(|
-                 |\) | \)|\)|
-                 |\> | \>|\>|
-                 |\< | \<|\<|
-                 |\$ | \$|\$|
-                 |/ | /|/|
-                 |\.eq\.|
-                 |\.lt\.|
-                 |\.le\.|
-                 |\.gt\.|
-                 |\.ge\.|
-                 |\.or\.|
-                 |\.and\.|
-                 |\.not\.|
-                  ''') ->\
-                 List[str]:
+def split_string_dimension(s: str,
+                           delimiters:
+                           str =
+                           r''' |
+                            ''') ->\
+                           List[str]:
+    """Split a string using the regex delimiters
+
+    Args:
+        s (str): the string
+        delimiters (str, optional): Regex delimiters.
+                                    Defaults to ' |, | ,|, | etc ...'.
+
+    Returns:
+        List[str]: the splitted string
+    """
+    split_str = re.split(delimiters, s)
+    return list(filter(None, split_str))
+
+    
+def split_string_bulky(s: str,
+                       delimiters:
+                       str =
+                       r''' |
+                       |, | ,|,|
+                       |: | :|:|
+                       |\= | \=|\=|
+                       |\* | \*|\*|
+                       |- | -|-|
+                       |\+ | \+|\+|
+                       |\( | \(|\(|
+                       |\) | \)|\)|
+                       |\> | \>|\>|
+                       |\< | \<|\<|
+                       |\$ | \$|\$|
+                       |/ | /|/|
+                       |\.eq\.|
+                       |\.lt\.|
+                       |\.le\.|
+                       |\.gt\.|
+                       |\.ge\.|
+                       |\.or\.|
+                       |\.and\.|
+                       |\.not\.|
+                        ''') ->\
+                       List[str]:
     """Split a string using the regex delimiters
 
     Args:

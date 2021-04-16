@@ -35,7 +35,8 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
             idx_end.append(i)
 
     return [SimpleNamespace(name=name, istart=istart,
-            data=data[istart:iend], module=[], parameters=[], bulky_var=[])
+            data=data[istart:iend], module=[], parameters=[], dimensions=[],
+                      bulky_var=[])
             for name, istart, iend in zip(name, idx_start, idx_end)]
 
 
@@ -62,47 +63,12 @@ def fill_scopes(rawdata: List[str], scopes: List[SimpleNamespace],
         if clean_implicit:
             print('  \t+ Filling parameters attribute.')
             scope = fill_parameters(scope)
+            print('  \t+ Filling dimensions attribute.')
+            scope = fill_dimensions(scope)
             print('  \t+ Filling bulky_var attribute.\n')
             scope = fill_bulky_var(scope)
 
     return scopes
-
-
-def modify_rawdata(rawdata: List[str], scopes: List[SimpleNamespace],
-                   clean_use: bool,
-                   clean_implicit: bool) -> List[str]:
-    """ Modify rawdata input according to scopes and argument flags.
-
-    :param rawdata: List of the bulky content of the read file.
-
-    :param scopes: List of scopes.
-
-    :param clean_use: Boolean to replace or not the implicit real.
-
-    :param clean_implicit: Boolean to replace or not the implicit real.
-
-    :return: rawdata with modifications.
-    """
-    for index, scope in enumerate(scopes):
-        print('  - Modifying rawdata of scope: %s' % scope.name)
-        if clean_use:
-            # Count the number of var calls per var per module in scope:
-            scope = count_var(scope)
-
-            # clean the raw data
-            rawdata = clean_raw_data(rawdata, scope)
-
-        # add undeclared variables:
-        if clean_implicit:
-            if len(scope.bulky_var):
-                rawdata = add_undeclared_variables(rawdata, scope, index)
-                rawdata = add_use_precision_kinds(rawdata, scope, index)
-                rawdata = delete_parameters(rawdata)
-            else:
-                print('      No potential variables found in the scope.')
-
-        print('    ... done!\n')
-    return rawdata
 
 
 def fill_module(scope: SimpleNamespace) -> SimpleNamespace:
@@ -175,6 +141,68 @@ def fill_parameters(scope: SimpleNamespace) -> SimpleNamespace:
     return scope
 
 
+def fill_dimensions(scope: SimpleNamespace) -> SimpleNamespace:
+    """
+    Populate scope.dimension = List[SimpleNamespace] with variables
+    names and array dimensions.
+    E.g.: 'dimension hii(MPARM),sii(MPARM)'
+
+    Args:
+        :param scope: Namespace containing the data.
+
+    Returns:
+        :return scope: Return the same entry SimpleNamespace with the
+                       scope.dimensions attribute populated by a
+                       List[SimpleNamespace] containing the variable
+                       names and dimensions.
+    """
+    for sd in scope.data:
+        if sd[0] == 'dimension':
+            sa = sd[0:1]
+            sa += " "
+            declaration = separate_dimensions(list_to_string(sd[1:]))
+            scope.dimensions.append(declaration)
+    return scope
+
+
+def separate_dimensions(s: str) -> SimpleNamespace:
+    """Separate a dimension-string declaration into variables and dimensions.
+    The result is stored in a SimpleNamestpace with attributes variables and
+    dimensions.
+    :param s: Entry string with the dimension declaration.
+    :return: SimpleNamespace.variables and SimpleNamespace.dimensions.
+    """
+    variables, dimensions = [], []
+    s_splitted = (s.replace("),", ") ")).split()
+    variable = ""
+    close_parenethesis = False
+    for i in s_splitted:
+        if "(" and ")" in i:
+            close_parenethesis = True
+        elif "(" in i:
+            close_parenethesis = False
+        elif ")" in i:
+            close_parenethesis = True
+        variable += i
+        if close_parenethesis:
+            variable = variable.replace(",", ", ")
+            variables.append(variable[:variable.index("(")])
+            dimensions.append(variable[variable.index("("):])
+            variable = ""
+    return SimpleNamespace(variables=variables, dimensions=dimensions)
+
+
+def list_to_string(entry_list: list) -> str:
+    """ Convert list to string.
+    :param entry_list:
+    "return str:
+    """
+    str1 = ""
+    for element in entry_list:
+        str1 += element
+    return str1
+
+
 def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     """
     Filter variables in the bulky scope.data that are not imported by
@@ -208,19 +236,22 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "\t", "\n"]
 
     # Initiate booleans to discern quotes:
-    in_quotes = False
-    double_quote = False
-    quoted_one_word = False
+    in_quotes, double_quote, quoted_one_word = False, False, False
     quoted_sign = ""
 
     # Exclude all variables imported by the use statements:
-    for s in scope.module:
-        for v in s.var:
+    for sm in scope.module:
+        for v in sm.var:
             exclude.append(v.name.lower())
 
-    # Exclude all variables declared as parameters:
-    for s in scope.parameters:
-        exclude.append(s)
+    # Exclude variables declared as parameters:
+    for sp in scope.parameters:
+        exclude.append(sp)
+
+    # Exclude variables declared with dimensions:
+    for sd in scope.dimensions:
+        for variable in sd.variables:
+            exclude.append(variable)
 
     # Analyse the whole scope.data:
     bulky_var = []  # carry all the selected variables in scope.data.
@@ -303,8 +334,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                     if len(x) > 1:
                         if double_quote:
                             if x[-2:] == quoted_sign:
-                                in_quotes = False
-                                double_quote = False
+                                in_quotes, double_quote = False, False
                                 quoted_sign = ""
                         else:
                             if x[-1:] == quoted_sign and x[-2:] != "\'\'":
@@ -332,8 +362,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
                 # Reset booleans if x is a quoted_one_word:
                 if quoted_one_word:
-                    quoted_one_word = False
-                    in_quotes = False
+                    quoted_one_word, in_quotes = False, False
                     if double_quote:
                         double_quote = False
                     quoted_sign = ""
@@ -341,6 +370,44 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     # Finish by deleting redundancies:
     scope.bulky_var = (list(dict.fromkeys(flatten_string_list(bulky_var))))
     return scope
+
+
+def modify_rawdata(rawdata: List[str], scopes: List[SimpleNamespace],
+                   clean_use: bool,
+                   clean_implicit: bool) -> List[str]:
+    """ Modify rawdata input according to scopes and argument flags.
+
+    :param rawdata: List of the bulky content of the read file.
+
+    :param scopes: List of scopes.
+
+    :param clean_use: Boolean to replace or not the implicit real.
+
+    :param clean_implicit: Boolean to replace or not the implicit real.
+
+    :return: rawdata with modifications.
+    """
+    for index, scope in enumerate(scopes):
+        print('  - Modifying rawdata of scope: %s' % scope.name)
+        if clean_use:
+            # Count the number of var calls per var per module in scope:
+            scope = count_var(scope)
+
+            # clean the raw data
+            rawdata = clean_raw_data(rawdata, scope)
+
+        # add undeclared variables:
+        if clean_implicit:
+            if len(scope.bulky_var):
+                rawdata = add_undeclared_variables(rawdata, scope, index)
+                rawdata = add_use_precision_kinds(rawdata, scope, index)
+                rawdata = delete_parameters(rawdata)
+                rawdata = delete_dimensions(rawdata)
+            else:
+                print('      No potential variables found in the scope.')
+
+        print('    ... done!\n')
+    return rawdata
 
 
 def count_var(scope: SimpleNamespace) -> SimpleNamespace:
@@ -445,11 +512,11 @@ def add_undeclared_variables(rawdata: List[str],
     # List of integers and floats to add:
     new_integers = ['      integer', ' :: ']
     new_floats = ['      real(dp)', ' :: ']
-    new_integer_parameters = []
-    new_float_parameters = []
 
-    # Declare missed variables:
-    new_variables_to_add = []  # Carries the declaration of new variables.
+    # Variables to declare:
+    new_variables_to_add = []
+    new_integer_parameters, new_float_parameters = [], []
+    new_integer_dimensions, new_float_dimensions = [], []
 
     index_integer = 1
     index_float = 1
@@ -517,12 +584,30 @@ def add_undeclared_variables(rawdata: List[str],
         else:
             print("\n     WARNING --- parameter declaration not resolved")
             print("            is there any special character (*, +, / ..)? \n")
+
+    # Add variables with declared dimensions:
+    if len(scope.dimensions):
+        for sd in scope.dimensions:
+            for variable_index, variable in enumerate(sd.variables):
+                if variable[0] in integer_variables:
+                    new_integer_dimensions.extend([
+                        '      integer', ', ',
+                        'dimension', sd.dimensions[variable_index], ' :: ',
+                        sd.variables[variable_index], "\n"])
+                else:
+                    new_float_dimensions.extend([
+                        '      real(dp)', ', ',
+                        'dimension', sd.dimensions[variable_index], ' :: ',
+                        sd.variables[variable_index], "\n"])
+
     # Add final new line and combine:
     new_integers.append("\n")
     new_floats.append("\n")
     new_variables_to_add = new_integers + new_floats \
                                         + new_float_parameters \
-                                        + new_integer_parameters
+                                        + new_integer_parameters \
+                                        + new_integer_dimensions \
+                                        + new_float_dimensions
 
     # Add declared missed variables to raw data after an "implicit none"
     # declaration:
@@ -620,6 +705,23 @@ def delete_parameters(rawdata: List[str]) -> List[str]:
     """
     rawdata = [rd for rd in rawdata if not(
                rd.lstrip(" ").startswith("parameter")
+               and len(rd.lstrip(" ")) > 9)]
+
+    return rawdata
+
+
+def delete_dimensions(rawdata: List[str]) -> List[str]:
+    """Delete lines starting with the word dimensions, e.g:
+       dimension r(3),r_basis(3) 
+
+    Args:
+        rawdata (List[str]): [description]
+
+    Returns:
+        List[List[str]]: [description]
+    """
+    rawdata = [rd for rd in rawdata if not(
+               rd.lstrip(" ").startswith("dimension")
                and len(rd.lstrip(" ")) > 9)]
 
     return rawdata
