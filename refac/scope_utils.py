@@ -1,7 +1,7 @@
 """ Utilities to build-up scopes."""
 from typing import List
 from types import SimpleNamespace
-from refac.string_utils import flatten_string_list
+from refac.string_utils import flatten_string_list, has_number, split_string_parameter
 import string
 import re
 
@@ -158,8 +158,6 @@ def fill_dimensions(scope: SimpleNamespace) -> SimpleNamespace:
     """
     for sd in scope.data:
         if sd[0] == 'dimension':
-            sa = sd[0:1]
-            sa += " "
             declaration = separate_dimensions(list_to_string(sd[1:]))
             scope.dimensions.append(declaration)
     return scope
@@ -229,7 +227,8 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "then", "to", "return", "min", "max", "nint", "abs", "float",
                "data", "log", "dlog", "exp", "dexp", "mod", "sign", "int",
                "status", "format", "file", "unit", "read", "save", "rewind",
-               "character", "backspace", "common",
+               "character", "backspace", "common", "real", "integer",
+               "logical", "rannyu",
                "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision",
@@ -240,9 +239,10 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     quoted_sign = ""
 
     # Exclude all variables imported by the use statements:
-    for sm in scope.module:
-        for v in sm.var:
-            exclude.append(v.name.lower())
+    exclude.extend(gather_use_variables(scope.module))
+#    for sm in scope.module:
+#        for v in sm.var:
+#            exclude.append(v.name.lower())
 
     # Exclude variables declared as parameters:
     for sp in scope.parameters:
@@ -346,17 +346,24 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                             quoted_sign = ""
 
                 # Make sure that the potential variable is not a digit
-                # and has no point or ampersand, and is not a single-quoted
-                # word or quoted text:
+                # or digit in scientific notation, 
+                # and has no point or ampersand, etc., and is not a
+                # single-quoted word or quoted text:
+                is_scientific_number = False
+                if has_number(x) and sum(c.isalpha() for c in x) == 1 and \
+                   (x.lower()).count('e') == 1:
+                    is_scientific_number = True
+
                 if (not x.isdigit()) and \
-                   not any(a in x for a in (".", "&", "\'", "\"")) \
+                   not any(a in x for a in (".", "&", "(",
+                                            ")", "\'", "\"")) \
                    and not in_quotes:
                     variable = x
 
                 # Make sure it has some length, and is not in the
                 # exclude list:
                     if len(variable) > 0 and variable.lower() \
-                       not in exclude:
+                       not in exclude and not is_scientific_number:
                         sd_copy.append(variable)
                         bulky_var.append(sd_copy)
 
@@ -370,6 +377,17 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     # Finish by deleting redundancies:
     scope.bulky_var = (list(dict.fromkeys(flatten_string_list(bulky_var))))
     return scope
+
+
+def gather_use_variables(scope_module: SimpleNamespace) -> List[str]:
+    """Add to a list all the variables imported by use statements in a
+    scope.module.
+    """
+    variable_list = []
+    for sm in scope_module:
+        for v in sm.var:
+            variable_list.append(v.name.lower())
+    return variable_list
 
 
 def modify_rawdata(rawdata: List[str], scopes: List[SimpleNamespace],
@@ -520,7 +538,7 @@ def add_undeclared_variables(rawdata: List[str],
 
     index_integer = 1
     index_float = 1
-    max_line_length = 10
+    max_line_length = 10  # Here change the maximum of length line.
     new_integer_line = False
     new_float_line = False
 
@@ -587,6 +605,7 @@ def add_undeclared_variables(rawdata: List[str],
 
     # Add variables with declared dimensions:
     if len(scope.dimensions):
+        use_variables = gather_use_variables(scope.module)
         for sd in scope.dimensions:
             for variable_index, variable in enumerate(sd.variables):
                 if variable[0] in integer_variables:
@@ -600,14 +619,26 @@ def add_undeclared_variables(rawdata: List[str],
                         'dimension', sd.dimensions[variable_index], ' :: ',
                         sd.variables[variable_index], "\n"])
 
+                # Add the dimension(argument) if it is not in the new_integer
+                # list and not in the imported variables by 'use':
+                dimension_list = \
+                    split_string_parameter(sd.dimensions[variable_index])
+                for dim in dimension_list:
+                    dim_stripped = (dim.strip("()")).lower()
+                    if dim_stripped != "*" \
+                       and not dim_stripped.isdigit() \
+                       and dim_stripped not in new_integers \
+                       and dim_stripped not in use_variables:
+                        new_integers.extend([", ", dim_stripped])
+
     # Add final new line and combine:
     new_integers.append("\n")
     new_floats.append("\n")
-    new_variables_to_add = new_integers + new_floats \
-                                        + new_float_parameters \
+    new_variables_to_add = new_integers + new_integer_dimensions \
                                         + new_integer_parameters \
-                                        + new_integer_dimensions \
-                                        + new_float_dimensions
+                                        + new_floats \
+                                        + new_float_dimensions \
+                                        + new_float_parameters
 
     # Add declared missed variables to raw data after an "implicit none"
     # declaration:

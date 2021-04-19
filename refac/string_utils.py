@@ -114,3 +114,13 @@ def split_string_bulky(s: str,
     """
     split_str = re.split(delimiters, s)
     return list(filter(None, split_str))
+
+
+def has_number(input_string: str) -> bool:
+    """Returns True if the entry string has a number.
+
+    :param input_string: str
+
+    :return: boolean
+    """
+    return any(char.isdigit() for char in input_string)

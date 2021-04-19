@@ -26,7 +26,18 @@ def replace_ampersand(rawdata: List[str]) -> List[List[str]]:
                     rawdata[next_line] = rawdata[next_line].replace(
                         '&', ' use %s, only: ' % name)
                     next_line += 1
-
+            if rd.lstrip(' ').startswith('parameter'):
+                next_line = il+1
+                while rawdata[next_line].lstrip(' ').startswith('&'):
+                    rawdata[next_line] = rawdata[next_line].replace(
+                        '&', ' parameter ')
+                    next_line += 1
+            if rd.lstrip(' ').startswith('dimension'):
+                next_line = il+1
+                while rawdata[next_line].lstrip(' ').startswith('&'):
+                    rawdata[next_line] = rawdata[next_line].replace(
+                        '&', ' dimension ')
+                    next_line += 1
     return rawdata
 
 
