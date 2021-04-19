@@ -1,7 +1,8 @@
 """ Utilities to build-up scopes."""
 from typing import List
 from types import SimpleNamespace
-from refac.string_utils import flatten_string_list, has_number, split_string_parameter
+from refac.string_utils import (flatten_string_list, has_number,
+                                split_string_parameter)
 import string
 import re
 
@@ -138,6 +139,7 @@ def fill_parameters(scope: SimpleNamespace) -> SimpleNamespace:
 
     # Finish by deleting redundancies:
     scope.parameters = (list(dict.fromkeys(bulky_parameters)))
+#    print("Pablo says scope.parameters", scope.parameters)
     return scope
 
 
@@ -228,7 +230,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "data", "log", "dlog", "exp", "dexp", "mod", "sign", "int",
                "status", "format", "file", "unit", "read", "save", "rewind",
                "character", "backspace", "common", "real", "integer",
-               "logical",
+               "logical", "form",
                "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision",
@@ -239,7 +241,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     quoted_sign = ""
 
     # Exclude all variables imported by the use statements:
-    exclude.extend(gather_use_variables(scope.module))
+    exclude.extend(gather_use_variables(scope))
 #    for sm in scope.module:
 #        for v in sm.var:
 #            exclude.append(v.name.lower())
@@ -379,15 +381,34 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     return scope
 
 
-def gather_use_variables(scope_module: SimpleNamespace) -> List[str]:
+def gather_use_variables(scope: SimpleNamespace) -> List[str]:
     """Add to a list all the variables imported by use statements in a
     scope.module.
+
+    :param scope:
+
+    :return: List with the variable names.
     """
     variable_list = []
-    for sm in scope_module:
+    for sm in scope.module:
         for v in sm.var:
             variable_list.append(v.name.lower())
+    # Quick fix, move somewhere else:
+    variable_list.append("mpi_status_size")
     return variable_list
+
+
+def gather_use_names(scope: SimpleNamespace) -> List[str]:
+    """Add to a list all the 'use'-imported modules of scope SimpleNamespace.
+
+    :param scope:
+
+    :return: List with the name of the imported modules via 'use'. 
+    """
+    module_names = []
+    for sm in scope.module:
+        module_names.append(sm.name.lower())
+    return module_names
 
 
 def modify_rawdata(rawdata: List[str], scopes: List[SimpleNamespace],
@@ -605,7 +626,7 @@ def add_undeclared_variables(rawdata: List[str],
 
     # Add variables with declared dimensions:
     if len(scope.dimensions):
-        use_variables = gather_use_variables(scope.module)
+        use_variables = gather_use_variables(scope)
         for sd in scope.dimensions:
             for variable_index, variable in enumerate(sd.variables):
                 if variable[0] in integer_variables:
