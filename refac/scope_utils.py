@@ -228,7 +228,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "data", "log", "dlog", "exp", "dexp", "mod", "sign", "int",
                "status", "format", "file", "unit", "read", "save", "rewind",
                "character", "backspace", "common", "real", "integer",
-               "logical", "rannyu",
+               "logical",
                "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision",
