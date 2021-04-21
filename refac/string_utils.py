@@ -8,11 +8,11 @@ def split_rawdata(rawdata: List[str]) -> List[str]:
     rawdata_split = []
     for rd in rawdata:
         if rd.lstrip(" ")[0:9] == "parameter":
-            rawdata_split.append(split_string_parameter(rd))
-        if rd.lstrip(" ")[0:9] == "dimension":
-            rawdata_split.append(split_string_dimension(rd))
+            rawdata_split.append(split_string_soft(rd))
+        elif rd.lstrip(" ")[0:9] == "dimension":
+            rawdata_split.append(split_string_soft(rd))
         else:
-            rawdata_split.append(split_string_bulky(rd))
+            rawdata_split.append(split_string_hard(rd))
     return rawdata_split
 
 
@@ -28,20 +28,12 @@ def flatten_string_list(l: List[List[str]]) -> List[str]:
     return [item for sublist in l for item in sublist]
 
 
-def split_string_parameter(s: str,
-                           delimiters:
-                           str =
-                           r''' |
-                           |, | ,|,|
-                           |: | :|:|
-                           |\= | \=|\=|
-                           |\( | \(|\(|
-                           |\) | \)|\)|
-                           |\> | \>|\>|
-                           |\< | \<|\<|
-                           |\$ | \$|\$|
-                            ''') ->\
-                           List[str]:
+def split_string_soft(s: str,
+                      delimiters:
+                      str =
+                      r''' |
+                       ''') ->\
+                      List[str]:
     """Split a string using the regex delimiters
 
     Args:
@@ -56,12 +48,20 @@ def split_string_parameter(s: str,
     return list(filter(None, split_str))
 
 
-def split_string_dimension(s: str,
-                           delimiters:
-                           str =
-                           r''' |
-                            ''') ->\
-                           List[str]:
+def split_string_medium(s: str,
+                        delimiters:
+                        str =
+                        r''' |
+                        |, | ,|,|
+                        |: | :|:|
+                        |\= | \=|\=|
+                        |\( | \(|\(|
+                        |\) | \)|\)|
+                        |\> | \>|\>|
+                        |\< | \<|\<|
+                        |\$ | \$|\$|
+                         ''') ->\
+                        List[str]:
     """Split a string using the regex delimiters
 
     Args:
@@ -75,33 +75,33 @@ def split_string_dimension(s: str,
     split_str = re.split(delimiters, s)
     return list(filter(None, split_str))
 
-    
-def split_string_bulky(s: str,
-                       delimiters:
-                       str =
-                       r''' |
-                       |, | ,|,|
-                       |: | :|:|
-                       |\= | \=|\=|
-                       |\* | \*|\*|
-                       |- | -|-|
-                       |\+ | \+|\+|
-                       |\( | \(|\(|
-                       |\) | \)|\)|
-                       |\> | \>|\>|
-                       |\< | \<|\<|
-                       |\$ | \$|\$|
-                       |/ | /|/|
-                       |\.eq\.|
-                       |\.lt\.|
-                       |\.le\.|
-                       |\.gt\.|
-                       |\.ge\.|
-                       |\.or\.|
-                       |\.and\.|
-                       |\.not\.|
-                        ''') ->\
-                       List[str]:
+
+def split_string_hard(s: str,
+                      delimiters:
+                      str =
+                      r''' |
+                      |, | ,|,|
+                      |: | :|:|
+                      |\= | \=|\=|
+                      |\* | \*|\*|
+                      |- | -|-|
+                      |\+ | \+|\+|
+                      |\( | \(|\(|
+                      |\) | \)|\)|
+                      |\> | \>|\>|
+                      |\< | \<|\<|
+                      |\$ | \$|\$|
+                      |/ | /|/|
+                      |\.eq\.|
+                      |\.lt\.|
+                      |\.le\.|
+                      |\.gt\.|
+                      |\.ge\.|
+                      |\.or\.|
+                      |\.and\.|
+                      |\.not\.|
+                       ''') ->\
+                      List[str]:
     """Split a string using the regex delimiters
 
     Args:

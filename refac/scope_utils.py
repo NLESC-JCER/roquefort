@@ -2,7 +2,7 @@
 from typing import List
 from types import SimpleNamespace
 from refac.string_utils import (flatten_string_list, has_number,
-                                split_string_parameter)
+                                split_string_medium)
 import string
 import re
 
@@ -113,41 +113,42 @@ def fill_module(scope: SimpleNamespace) -> SimpleNamespace:
 def fill_parameters(scope: SimpleNamespace) -> SimpleNamespace:
     """
     Populate scope.parameters = list[] with parameter-declared variables.
-    E.g.: 'parameter(zero=0.d0, one=1.d0)'
 
-    Args:
-        :param scope: Namespace containing the data.
+    :param scope: Namespace containing the data.
 
-    Returns:
-        :return scope: Return the same SimpleNamespace with the
-                       scope.parameters attribute populated by a simple
-                       list[] containing all the variables declared as
-                       parameters.
+    :return scope: Return the same SimpleNamespace with the
+                   scope.parameters attribute populated by a simple
+                   list[] containing all the variables declared as
+                   parameters.
     """
-    bulky_parameters = []   # parameters found per line.
-    for sd in scope.data:
+    for sd in scope.data[:60]:
         if sd[0].lower() == "parameter":
-            sd_strip = []   # a copy of sd without ending lines.
-            starting_point = 1
-            for var in sd:
-                sd_strip.append(var.strip("\n"))
-
-            # Start the main loop:
-            s_iter = iter(x for x in sd_strip[starting_point:] if len(x))
-            for x in s_iter:
-                bulky_parameters.append(x)
-
-    # Finish by deleting redundancies:
-    scope.parameters = (list(dict.fromkeys(bulky_parameters)))
-#    print("Pablo says scope.parameters", scope.parameters)
+            declaration = separate_parameters(list_to_string(sd[1:]))
+            scope.parameters.append(declaration)
     return scope
+
+
+def separate_parameters(s: str) -> SimpleNamespace:
+    """Separate a parameters-string line declaration into variables and values.
+    The result is stored in a SimpleNamestpace with attributes variables and
+    values.
+
+    :param s: Entry string with the dimension declaration.
+
+    :return: SimpleNamespace.variables and SimpleNamespace.values.
+    """
+    variables, values = [], []
+    s_splitted = (s[1:].replace("\n", ""))[:-1].split(",")
+    for i in s_splitted:
+        variables.append(i.split("=")[0])
+        values.append(i.split("=")[1])
+    return SimpleNamespace(variables=variables, values=values)
 
 
 def fill_dimensions(scope: SimpleNamespace) -> SimpleNamespace:
     """
-    Populate scope.dimension = List[SimpleNamespace] with variables
-    names and array dimensions.
-    E.g.: 'dimension hii(MPARM),sii(MPARM)'
+    Populate scope.dimension = List[SimpleNamespace] of a scope
+    with variables names and array dimensions.
 
     Args:
         :param scope: Namespace containing the data.
@@ -166,10 +167,12 @@ def fill_dimensions(scope: SimpleNamespace) -> SimpleNamespace:
 
 
 def separate_dimensions(s: str) -> SimpleNamespace:
-    """Separate a dimension-string declaration into variables and dimensions.
+    """Separate a dimension-string line declaration into variables and dimensions.
     The result is stored in a SimpleNamestpace with attributes variables and
     dimensions.
+
     :param s: Entry string with the dimension declaration.
+
     :return: SimpleNamespace.variables and SimpleNamespace.dimensions.
     """
     variables, dimensions = [], []
@@ -194,7 +197,9 @@ def separate_dimensions(s: str) -> SimpleNamespace:
 
 def list_to_string(entry_list: list) -> str:
     """ Convert list to string.
+
     :param entry_list:
+
     "return str:
     """
     str1 = ""
@@ -208,14 +213,12 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     Filter variables in the bulky scope.data that are not imported by
     the use statements.
 
-    Args:
-        :param scope: Namespace containing the data.
+    :param scope: Namespace containing the data.
 
-    Returns:
-        :return scope: Return the same SimpleNamespace with the
-                       scope.bulky_var attribute populated by a simple
-                       list[] containing all the unique variables found
-                       in scope.data that are not imported by the use imports.
+    :return scope: Return the same SimpleNamespace with the
+                   scope.bulky_var attribute populated by a simple
+                   list[] containing all the unique variables found
+                   in scope.data that are not imported by the use imports.
     """
     # Avoid lines with the following starting-words:
     avoid_analysis = ["implicit", "subroutine", "program", "endif", "enddo",
@@ -242,18 +245,14 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
     # Exclude all variables imported by the use statements:
     exclude.extend(gather_use_variables(scope))
-#    for sm in scope.module:
-#        for v in sm.var:
-#            exclude.append(v.name.lower())
 
     # Exclude variables declared as parameters:
     for sp in scope.parameters:
-        exclude.append(sp)
+        exclude.extend(sp.variables)
 
     # Exclude variables declared with dimensions:
     for sd in scope.dimensions:
-        for variable in sd.variables:
-            exclude.append(variable)
+        exclude.extend(sd.variables)
 
     # Analyse the whole scope.data:
     bulky_var = []  # carry all the selected variables in scope.data.
@@ -348,7 +347,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                             quoted_sign = ""
 
                 # Make sure that the potential variable is not a digit
-                # or digit in scientific notation, 
+                # or digit in scientific notation,
                 # and has no point or ampersand, etc., and is not a
                 # single-quoted word or quoted text:
                 is_scientific_number = False
@@ -606,23 +605,18 @@ def add_undeclared_variables(rawdata: List[str],
 
     # Add variables declared as parameters:
     if len(scope.parameters):
-        if (len(scope.parameters) % 2 == 0):
-            for index_sp in range(0, len(scope.parameters), 2):
-                if scope.parameters[index_sp][0] in integer_variables:
+        for sd in scope.parameters:
+            for variable_index, variable in enumerate(sd.variables):
+                if variable[0] in integer_variables:
                     new_integer_parameters.extend([
                         '      integer', ', ', 'parameter', ' :: ',
-                        scope.parameters[index_sp], " = ",
-                        scope.parameters[index_sp+1],
-                        "\n"])
+                        sd.variables[variable_index], ' = ',
+                        sd.values[variable_index], "\n"])
                 else:
                     new_float_parameters.extend([
                         '      real(dp)', ', ', 'parameter', ' :: ',
-                        scope.parameters[index_sp], " = ",
-                        scope.parameters[index_sp+1],
-                        "\n"])
-        else:
-            print("\n     WARNING --- parameter declaration not resolved")
-            print("            is there any special character (*, +, / ..)? \n")
+                        sd.variables[variable_index], ' = ',
+                        sd.values[variable_index], "\n"])
 
     # Add variables with declared dimensions:
     if len(scope.dimensions):
@@ -643,7 +637,7 @@ def add_undeclared_variables(rawdata: List[str],
                 # Add the dimension(argument) if it is not in the new_integer
                 # list and not in the imported variables by 'use':
                 dimension_list = \
-                    split_string_parameter(sd.dimensions[variable_index])
+                    split_string_medium(sd.dimensions[variable_index])
                 for dim in dimension_list:
                     dim_stripped = (dim.strip("()")).lower()
                     if dim_stripped != "*" \
