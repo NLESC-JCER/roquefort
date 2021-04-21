@@ -44,3 +44,24 @@ def get_new_filename(filename: str) -> str:
     """
     base, ext = filename.split('.')
     return base + '_copy.' + ext
+
+
+def rise_error(file: str, function: str, type: str, message: str):
+    """
+    Rise errors according to arguments:
+
+    :param file: Python file where the error occurs.
+
+    :param function: Name of the function calling the error.
+
+    :param type: Error type.
+
+    :param message: String describing the error.
+    """
+    nl = '\n'
+    if (type == "NameError"):
+        msg = f'{nl}### ERROR ### {function} function/method' \
+              f' in {file}:' \
+              f'{nl}              "{message}"'
+        raise NameError(msg)
+    return

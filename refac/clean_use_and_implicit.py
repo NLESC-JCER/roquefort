@@ -1,7 +1,8 @@
 #!/usr/bin/env python
+import os
 from types import SimpleNamespace
 from typing import List
-from refac.io_utils import read_file, save_file, get_new_filename
+from refac.io_utils import read_file, save_file, get_new_filename, rise_error
 from refac.scope_utils import separate_scope, fill_scopes, modify_rawdata
 from refac.string_utils import split_rawdata
 import argparse
@@ -49,7 +50,12 @@ def replace_implicit_real(rawdata: List[str]) -> List[str]:
     :return: rawdata input with the implicit real replaced by none.
     """
     for index, rd in enumerate(rawdata):
-        if rd.lstrip(' ').startswith('implicit real*8'):
+        if rd.lstrip(' ').startswith('implicit none'):
+            rise_error(file=os.path.basename(__file__),
+                       function=replace_implicit_real.__name__,
+                       type='NameError',
+                       message="Implicit none is already declared!")
+        elif rd.lstrip(' ').startswith('implicit real*8'):
             rawdata[index] = "      implicit none\n\n"
     return rawdata
 
