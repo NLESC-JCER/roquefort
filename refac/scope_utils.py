@@ -55,7 +55,7 @@ def fill_scopes(rawdata: List[str], scopes: List[SimpleNamespace],
     """
     for scope in scopes:
 
-        print('  - Adding scope: %s' % scope.name)
+        print('  - Adding scope: %s \n' % scope.name)
         # Find variables in use statements:
         print('  \t+ Filling module attribute.')
         scope = fill_module(scope)
@@ -66,8 +66,9 @@ def fill_scopes(rawdata: List[str], scopes: List[SimpleNamespace],
             scope = fill_parameters(scope)
             print('  \t+ Filling dimensions attribute.')
             scope = fill_dimensions(scope)
-            print('  \t+ Filling bulky_var attribute.\n')
+            print('  \t+ Filling bulky_var attribute.')
             scope = fill_bulky_var(scope)
+            print('')
 
     return scopes
 
@@ -239,6 +240,8 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision",
                "\t", "\n"]
+    # Avoid some variables or external functions defined by the user:
+    user_exclude = ["rannyu", "gauss"]
 
     # Initiate booleans to discern quotes:
     in_quotes, double_quote, quoted_one_word = False, False, False
@@ -361,7 +364,11 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                                             ")", "\'", "\"")) \
                    and not in_quotes:
                     variable = x
-
+                # Raise waring if the variable is the user_exclude list:
+                    if variable in user_exclude:
+                        print("\t --- WARNING! ignoring user-defined " \
+                              "variable: %s" % x)
+                        exclude.extend(user_exclude)
                 # Make sure it has some length, and is not in the
                 # exclude list:
                     if len(variable) > 0 and variable.lower() \
