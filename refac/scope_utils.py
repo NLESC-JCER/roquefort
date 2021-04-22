@@ -121,7 +121,7 @@ def fill_parameters(scope: SimpleNamespace) -> SimpleNamespace:
                    list[] containing all the variables declared as
                    parameters.
     """
-    for sd in scope.data[:60]:
+    for sd in scope.data:
         if sd[0].lower() == "parameter":
             declaration = separate_parameters(list_to_string(sd[1:]))
             scope.parameters.append(declaration)
