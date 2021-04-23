@@ -240,6 +240,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision",
                "\t", "\n"]
+    
     # Avoid some variables or external functions defined by the user:
     user_exclude = ["rannyu", "gauss"]
 
