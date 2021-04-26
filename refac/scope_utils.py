@@ -130,7 +130,11 @@ def fill_floats(scope: SimpleNamespace) -> SimpleNamespace:
     """
     for sd in scope.data:
         if sd[0].lower().startswith("real"):
-            declaration = separate_dimensions(list_to_string(sd[1:]))
+            if sd[1].lower().startswith("dimension") and \
+               sd[2].lower().startswith("allocatable"):
+                declaration = separate_dimensions(list_to_string(sd[4:]))
+            else:
+                declaration = separate_dimensions(list_to_string(sd[1:]))
             scope.floats.append(declaration)
     return scope
 
@@ -148,7 +152,11 @@ def fill_integers(scope: SimpleNamespace) -> SimpleNamespace:
     """
     for sd in scope.data:
         if sd[0].lower().startswith("integer"):
-            declaration = separate_dimensions(list_to_string(sd[1:]))
+            if sd[1].lower().startswith("dimension") and \
+               sd[2].lower().startswith("allocatable"):
+                declaration = separate_dimensions(list_to_string(sd[4:]))
+            else:
+                declaration = separate_dimensions(list_to_string(sd[1:]))
             scope.integers.append(declaration)
     return scope
 
@@ -266,7 +274,8 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     avoid_analysis = ["implicit", "subroutine", "program", "endif", "enddo",
                       "return", "continue", "!", "c", "C", "function", "use",
                       "go", "goto", "include", "format", "integer", "logical",
-                      "real*8", "real*4", "parameter", "dimension",
+                      "real*4", "real*8", "real(dp)" "parameter", "dimension",
+                      "allocate",
                       "\n"]
 
     # Avoid Fortran keywords that are not variables:
@@ -280,7 +289,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "deallocate", "dreal", "print", "stop",
                "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
-               "mpi_comm_world", "mpi_double_precision",
+               "mpi_comm_world", "mpi_double_precision", "::",
                "\t", "\n"]
 
     # Avoid some variables or external functions defined by the user:
