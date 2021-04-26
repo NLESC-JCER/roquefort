@@ -806,7 +806,7 @@ def add_use_precision_kinds(rawdata: List[str],
         if "real(dp)" in [x.lstrip() for x in sm]:
             new_floats = True
     for sm in scope.module:
-        if 'precision_kinds' in sm.name:
+        if 'precision_kinds' in sm.name and sm.var[0].name == "dp":
             precision_kinds = True
 
     # Add statement to rawdata:
