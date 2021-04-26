@@ -2,6 +2,7 @@
 from typing import List
 from types import SimpleNamespace
 from refac.string_utils import (flatten_string_list, has_number,
+                                split_string_hard, list_to_string,
                                 split_string_medium)
 import string
 import re
@@ -36,7 +37,8 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
             idx_end.append(i)
 
     return [SimpleNamespace(name=name, istart=istart,
-            data=data[istart:iend], module=[], parameters=[], dimensions=[],
+            data=data[istart:iend], module=[], floats=[],
+                      integers=[], parameters=[], dimensions=[],
                       bulky_var=[])
             for name, istart, iend in zip(name, idx_start, idx_end)]
 
@@ -62,6 +64,10 @@ def fill_scopes(rawdata: List[str], scopes: List[SimpleNamespace],
 
         # Find possible variables on the bulky of the scope:
         if clean_implicit:
+            print('  \t+ Filling floats attribute.')
+            scope = fill_floats(scope)
+            print('  \t+ Filling integers attribute.')
+            scope = fill_integers(scope)
             print('  \t+ Filling parameters attribute.')
             scope = fill_parameters(scope)
             print('  \t+ Filling dimensions attribute.')
@@ -111,16 +117,52 @@ def fill_module(scope: SimpleNamespace) -> SimpleNamespace:
     return scope
 
 
-def fill_parameters(scope: SimpleNamespace) -> SimpleNamespace:
+def fill_floats(scope: SimpleNamespace) -> SimpleNamespace:
     """
-    Populate scope.parameters = list[] with parameter-declared variables.
+    Populate scope.floats with reals already declared.
 
     :param scope: Namespace containing the data.
 
     :return scope: Return the same SimpleNamespace with the
-                   scope.parameters attribute populated by a simple
-                   list[] containing all the variables declared as
-                   parameters.
+                   scope.floats attribute populated by a
+                   SimpleNamespace with variables declared
+                   as real numbers.
+    """
+    for sd in scope.data:
+        if sd[0].lower().startswith("real"):
+            declaration = separate_dimensions(list_to_string(sd[1:]))
+            scope.floats.append(declaration)
+    return scope
+
+
+def fill_integers(scope: SimpleNamespace) -> SimpleNamespace:
+    """
+    Populate scope.integers with integers already declared.
+
+    :param scope: Namespace containing the data.
+
+    :return scope: Return the same SimpleNamespace with the
+                   scope.floats attribute populated by a
+                   SimpleNamespace with variables declared
+                   as real numbers.
+    """
+    for sd in scope.data:
+        if sd[0].lower().startswith("integer"):
+            declaration = separate_dimensions(list_to_string(sd[1:]))
+            scope.integers.append(declaration)
+    return scope
+
+
+def fill_parameters(scope: SimpleNamespace) -> SimpleNamespace:
+    """
+    Populate scope.parameters with parameter-declared variables.
+
+    :param scope: Namespace containing the data.
+
+    :return scope: Return the same SimpleNamespace with the
+                   scope.parameters attribute populated by a
+                   SimpleNamespace containing all the variables
+                   declared as parameters.
     """
     for sd in scope.data:
         if sd[0].lower() == "parameter":
@@ -139,7 +181,11 @@ def separate_parameters(s: str) -> SimpleNamespace:
     :return: SimpleNamespace.variables and SimpleNamespace.values.
     """
     variables, values = [], []
+
+    if "!" in s:  # Avoid ! comments at the end of the line.
+        s = s[:s.index("!")]
     s_splitted = (s[1:].replace("\n", ""))[:-1].split(",")
+
     for i in s_splitted:
         variables.append(i.split("=")[0])
         values.append(i.split("=")[1])
@@ -168,7 +214,7 @@ def fill_dimensions(scope: SimpleNamespace) -> SimpleNamespace:
 
 
 def separate_dimensions(s: str) -> SimpleNamespace:
-    """Separate a dimension-string line declaration into variables and dimensions.
+    """Separate a dimension-string line into variables and dimensions.
     The result is stored in a SimpleNamestpace with attributes variables and
     dimensions.
 
@@ -177,36 +223,31 @@ def separate_dimensions(s: str) -> SimpleNamespace:
     :return: SimpleNamespace.variables and SimpleNamespace.dimensions.
     """
     variables, dimensions = [], []
-    s_splitted = (s.replace("),", ") ")).split()
     variable = ""
-    close_parenethesis = False
-    for i in s_splitted:
-        if "(" and ")" in i:
-            close_parenethesis = True
-        elif "(" in i:
-            close_parenethesis = False
-        elif ")" in i:
-            close_parenethesis = True
-        variable += i
-        if close_parenethesis:
-            variable = variable.replace(",", ", ")
-            variables.append(variable[:variable.index("(")])
-            dimensions.append(variable[variable.index("("):])
-            variable = ""
+    if "!" in s:  # Avoid ! comments at the end of the line.
+        s = s[:s.index("!")]
+    if "(" in s:
+        s_splitted = (s.replace("),", ") ")).split()
+        close_parenethesis = False
+        for i in s_splitted:
+            if "(" and ")" in i:
+                close_parenethesis = True
+            elif "(" in i:
+                close_parenethesis = False
+            elif ")" in i:
+                close_parenethesis = True
+            variable += i
+            if close_parenethesis:
+                variable = variable.replace(",", ", ")
+                variables.append(variable[:variable.index("(")])
+                dimensions.append(variable[variable.index("("):])
+                variable = ""
+    else:
+        s_splitted = (s.replace(",", " ")).split()
+        for i in s_splitted:
+            variables.append(i)
+            dimensions.append("None")
     return SimpleNamespace(variables=variables, dimensions=dimensions)
-
-
-def list_to_string(entry_list: list) -> str:
-    """ Convert list to string.
-
-    :param entry_list:
-
-    "return str:
-    """
-    str1 = ""
-    for element in entry_list:
-        str1 += element
-    return str1
 
 
 def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
@@ -224,7 +265,8 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     # Avoid lines with the following starting-words:
     avoid_analysis = ["implicit", "subroutine", "program", "endif", "enddo",
                       "return", "continue", "!", "c", "C", "function", "use",
-                      "go", "goto", "include", "format",
+                      "go", "goto", "include", "format", "integer", "logical",
+                      "real*8", "real*4", "parameter", "dimension",
                       "\n"]
 
     # Avoid Fortran keywords that are not variables:
@@ -235,12 +277,12 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "status", "format", "file", "unit", "read", "save", "rewind",
                "character", "backspace", "common", "real", "integer",
                "logical", "form", "allocate", "allocated", "allocatable",
-               "deallocate",
+               "deallocate", "dreal", "print", "stop",
                "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision",
                "\t", "\n"]
-    
+
     # Avoid some variables or external functions defined by the user:
     user_exclude = ["rannyu", "gauss"]
 
@@ -250,6 +292,14 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
     # Exclude all variables imported by the use statements:
     exclude.extend(gather_use_variables(scope))
+
+    # Exclude variables already declared as reals:
+    for sd in scope.floats:
+        exclude.extend(sd.variables)
+
+    # Exclude variables already declared as integers:
+    for sd in scope.integers:
+        exclude.extend(sd.variables)
 
     # Exclude variables declared as parameters:
     for sp in scope.parameters:
@@ -312,6 +362,10 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                 # Skip commented text, e.g. " ier = 0  ! nullify error":
                 if x == "!":
                     break
+                if "!" in x:
+                    x = x[:x.index("!")]
+                    if not len(x):
+                        break
                 # Deal with quotes ', '', ":
                 if not in_quotes:
                     if x[0] == "\'":
@@ -367,7 +421,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                     variable = x
                 # Raise waring if the variable is the user_exclude list:
                     if variable in user_exclude:
-                        print("\t --- WARNING! ignoring user-defined " \
+                        print("\t --- WARNING! ignoring user-defined "
                               "variable: %s" % x)
                         exclude.extend(user_exclude)
                 # Make sure it has some length, and is not in the
@@ -654,6 +708,38 @@ def add_undeclared_variables(rawdata: List[str],
                        and dim_stripped not in new_integers \
                        and dim_stripped not in use_variables:
                         new_integers.extend([", ", dim_stripped])
+
+    #  Add the float(dimension_argument) if it is not already declared:
+    if len(scope.floats):
+        use_variables = gather_use_variables(scope)
+        for sf in scope.floats:
+            for variable_index, variable in enumerate(sf.variables):
+                if sf.dimensions[variable_index] != "None":
+                    dimension_list = \
+                        split_string_hard(sf.dimensions[variable_index])
+                    for dim in dimension_list:
+                        dim_stripped = (dim.strip("()")).lower()
+                        if dim_stripped != "*" \
+                           and not dim_stripped.isdigit() \
+                           and dim_stripped not in new_integers \
+                           and dim_stripped not in use_variables:
+                            new_integers.extend([", ", dim_stripped])
+
+    #  Add the integer(dimension_argument) if it is not already declared:
+    if len(scope.integers):
+        use_variables = gather_use_variables(scope)
+        for sf in scope.integers:
+            for variable_index, variable in enumerate(sf.variables):
+                if sf.dimensions[variable_index] != "None":
+                    dimension_list = \
+                        split_string_hard(sf.dimensions[variable_index])
+                    for dim in dimension_list:
+                        dim_stripped = (dim.strip("()")).lower()
+                        if dim_stripped != "*" \
+                           and not dim_stripped.isdigit() \
+                           and dim_stripped not in new_integers \
+                           and dim_stripped not in use_variables:
+                            new_integers.extend([", ", dim_stripped])
 
     # Add final new line and combine:
     new_integers.append("\n")

@@ -7,7 +7,11 @@ def split_rawdata(rawdata: List[str]) -> List[str]:
     """Separate rawdata according to different patterns."""
     rawdata_split = []
     for rd in rawdata:
-        if rd.lstrip(" ")[0:9] == "parameter":
+        if rd.lstrip(" ")[0:4] == "real":
+            rawdata_split.append(split_string_soft(rd))
+        elif rd.lstrip(" ")[0:7] == "integer":
+            rawdata_split.append(split_string_soft(rd))
+        elif rd.lstrip(" ")[0:9] == "parameter":
             rawdata_split.append(split_string_soft(rd))
         elif rd.lstrip(" ")[0:9] == "dimension":
             rawdata_split.append(split_string_soft(rd))
@@ -124,3 +128,16 @@ def has_number(input_string: str) -> bool:
     :return: boolean
     """
     return any(char.isdigit() for char in input_string)
+
+
+def list_to_string(entry_list: list) -> str:
+    """ Convert list to string.
+
+    :param entry_list:
+
+    "return str:
+    """
+    str1 = ""
+    for element in entry_list:
+        str1 += element
+    return str1
