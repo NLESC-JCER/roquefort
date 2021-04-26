@@ -304,15 +304,15 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
     # Exclude variables already declared as reals:
     for sd in scope.floats:
-        exclude.extend(sd.variables)
+        exclude.extend(x.lower() for x in sd.variables)
 
     # Exclude variables already declared as integers:
-    for sd in scope.integers:
-        exclude.extend(sd.variables)
+    for si in scope.integers:
+        exclude.extend(x.lower() for x in si.variables)
 
     # Exclude variables declared as parameters:
     for sp in scope.parameters:
-        exclude.extend(sp.variables)
+        exclude.extend(x.lower() for x in sp.variables)
 
     # Exclude variables declared with dimensions:
     for sd in scope.dimensions:
@@ -438,7 +438,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                     if len(variable) > 0 and variable.lower() \
                        not in exclude and not is_scientific_number:
                         sd_copy.append(variable)
-                        bulky_var.append(sd_copy)
+                bulky_var.append(sd_copy)
 
                 # Reset booleans if x is a quoted_one_word:
                 if quoted_one_word:
@@ -449,6 +449,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
     # Finish by deleting redundancies:
     scope.bulky_var = (list(dict.fromkeys(flatten_string_list(bulky_var))))
+    print("Pablo says bulky_var:", scope.bulky_var)
     return scope
 
 
