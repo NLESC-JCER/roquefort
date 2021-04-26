@@ -449,7 +449,6 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
     # Finish by deleting redundancies:
     scope.bulky_var = (list(dict.fromkeys(flatten_string_list(bulky_var))))
-    print("Pablo says bulky_var:", scope.bulky_var)
     return scope
 
 
