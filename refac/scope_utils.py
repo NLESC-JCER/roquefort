@@ -295,7 +295,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                       "return", "continue", "!", "c", "C", "function", "use",
                       "go", "goto", "include", "format", "integer", "logical",
                       "real*4", "real*8", "real(dp)" "parameter", "dimension",
-                      "allocate",
+                      "allocate", "public", "contains",
                       "\n"]
 
     # Avoid Fortran keywords that are not variables:
@@ -313,7 +313,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "\t", "\n"]
 
     # Avoid some variables or external functions defined by the user:
-    user_exclude = ["rannyu", "gauss"]
+    user_exclude = []  #"rannyu", "gauss"]
 
     # Initiate booleans to discern quotes:
     in_quotes, double_quote, quoted_one_word = False, False, False
