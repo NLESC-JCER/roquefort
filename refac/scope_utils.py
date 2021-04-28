@@ -350,7 +350,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
         sd_strip = []   # a copy of sd without ending lines.
 
         for var in sd:
-            sd_strip.append(var.strip("\n"))
+            sd_strip.append(var.strip("\n").strip("\t"))
 
         if len(sd_strip) == 0:
             continue
