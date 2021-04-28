@@ -50,14 +50,23 @@ def replace_implicit_real(rawdata: List[str]) -> List[str]:
 
     :return: rawdata input with the implicit real replaced by none.
     """
+    implicit_declaration = False
     for index, rd in enumerate(rawdata):
         if rd.lstrip(' ').lower().startswith('implicit none'):
             rise_error(file=os.path.basename(__file__),
                        function=replace_implicit_real.__name__,
                        type='NameError',
                        message="Implicit none is already declared!")
+            implicit_declaration = True
         elif rd.lstrip(' ').lower().startswith('implicit real*8'):
             rawdata[index] = "      implicit none\n\n"
+            implicit_declaration = True
+
+    if not implicit_declaration:
+        rise_error(file=os.path.basename(__file__),
+                   function=replace_implicit_real.__name__,
+                   type='NameError',
+                   message="There is no implicit declaration!")
     return rawdata
 
 
