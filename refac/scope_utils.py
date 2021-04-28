@@ -38,8 +38,8 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
 
     return [SimpleNamespace(name=name, istart=istart,
             data=data[istart:iend], module=[], floats=[],
-                      integers=[], parameters=[], dimensions=[],
-                      bulky_var=[])
+                      integers=[], characters=[], parameters=[],
+                      dimensions=[], bulky_var=[])
             for name, istart, iend in zip(name, idx_start, idx_end)]
 
 
@@ -68,6 +68,8 @@ def fill_scopes(rawdata: List[str], scopes: List[SimpleNamespace],
             scope = fill_floats(scope)
             print('  \t+ Filling integers attribute.')
             scope = fill_integers(scope)
+            print('  \t+ Filling characters attribute.')
+            scope = fill_characters(scope)
             print('  \t+ Filling parameters attribute.')
             scope = fill_parameters(scope)
             print('  \t+ Filling dimensions attribute.')
@@ -158,6 +160,25 @@ def fill_integers(scope: SimpleNamespace) -> SimpleNamespace:
             else:
                 declaration = separate_dimensions(list_to_string(sd[1:]))
             scope.integers.append(declaration)
+    return scope
+
+
+def fill_characters(scope: SimpleNamespace) -> SimpleNamespace:
+    """
+    Populate scope.characters with integers already declared.
+
+    :param scope: Namespace containing the data.
+
+    :return scope: Return the same SimpleNamespace with the
+                   scope.characters attribute populated by a
+                   SimpleNamespace with variables declared
+                   as characters.
+    """
+    for sd in scope.data:
+        if sd[0].lower().startswith("character"):
+            declaration = separate_dimensions(list_to_string(sd[1:]))
+            scope.characters.append(declaration)
+    print("Pablo prints scope.characters:", scope.characters)
     return scope
 
 
@@ -271,7 +292,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                    in scope.data that are not imported by the use imports.
     """
     # Avoid lines with the following starting-words:
-    avoid_analysis = ["implicit", "subroutine", "program", "endif", "enddo",
+    avoid_analysis = ["implicit", "program", "endif", "enddo",
                       "return", "continue", "!", "c", "C", "function", "use",
                       "go", "goto", "include", "format", "integer", "logical",
                       "real*4", "real*8", "real(dp)" "parameter", "dimension",
@@ -310,6 +331,10 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     for si in scope.integers:
         exclude.extend(x.lower() for x in si.variables)
 
+    # Exclude variables already declared as characters:
+    for sc in scope.characters:
+        exclude.extend(x.lower() for x in sc.variables)
+
     # Exclude variables declared as parameters:
     for sp in scope.parameters:
         exclude.extend(x.lower() for x in sp.variables)
@@ -346,6 +371,10 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                 exclude.extend(character_var)
 
             starting_point = 0
+
+            # Exclude xxx in "subroutine xxx(a, b, c)":
+            if sd_strip[0] == "subroutine":
+                starting_point = 2
 
             # Exclude xxx in call to subroutines/functions like "call xxx":
             if sd_strip[0] == "call" or sd_strip[0] == "entry":
