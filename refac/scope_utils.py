@@ -178,7 +178,6 @@ def fill_characters(scope: SimpleNamespace) -> SimpleNamespace:
         if sd[0].lower().startswith("character"):
             declaration = separate_dimensions(list_to_string(sd[1:]))
             scope.characters.append(declaration)
-    print("Pablo prints scope.characters:", scope.characters)
     return scope
 
 
