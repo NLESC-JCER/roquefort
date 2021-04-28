@@ -710,13 +710,15 @@ def add_undeclared_variables(rawdata: List[str],
                 # list and not in the imported variables by 'use':
                 dimension_list = \
                     split_string_medium(sd.dimensions[variable_index])
-                for dim in dimension_list:
-                    dim_stripped = (dim.strip("()")).lower()
-                    if dim_stripped != "*" \
-                       and not dim_stripped.isdigit() \
-                       and dim_stripped not in new_integers \
-                       and dim_stripped not in use_variables:
-                        new_integers.extend([", ", dim_stripped])
+                dim_stripped = []
+                for dl in dimension_list:
+                    dim_stripped = split_string_hard((dl.strip("()")).lower())
+                    for ds in dim_stripped:
+                        if ds != "*" \
+                           and not ds.isdigit() \
+                           and ds not in new_integers \
+                           and ds not in use_variables:
+                            new_integers.extend([", ", ds])
 
     #  Add the float(dimension_argument) if it is not already declared:
     if len(scope.floats):
