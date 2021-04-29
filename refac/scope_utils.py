@@ -313,7 +313,9 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "\t", "\n"]
 
     # Avoid some variables or external functions defined by the user:
-    user_exclude = []  #"rannyu", "gauss"]
+    user_exclude = ["rannyu", "gauss", "int_from_cart", "gammai", "nterms4",
+                    "idiff", "rnorm_nodes_num", "psinl", "psianl",
+                    "dpsianl", "psia", "psib", "dpsibnl"]
 
     # Initiate booleans to discern quotes:
     in_quotes, double_quote, quoted_one_word = False, False, False
@@ -461,6 +463,8 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                         print("\t --- WARNING! ignoring user-defined "
                               "variable: %s" % x)
                         exclude.extend(user_exclude)
+                        print("\t --- is it a function? An interface is"
+                              "required!")
                 # Make sure it has some length, and is not in the
                 # exclude list:
                     if len(variable) > 0 and variable.lower() \
