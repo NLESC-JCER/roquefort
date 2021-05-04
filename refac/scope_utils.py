@@ -308,6 +308,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "logical", "form", "allocate", "allocated", "allocatable",
                "deallocate", "dreal", "print", "stop",
                "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
+               "mpi_real8",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision", "::",
                "\t", "\n"]
