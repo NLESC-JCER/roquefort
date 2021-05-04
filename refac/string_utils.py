@@ -101,6 +101,7 @@ def split_string_hard(s: str,
                       |\.le\.|
                       |\.gt\.|
                       |\.ge\.|
+                      |\.ne\.|
                       |\.or\.|
                       |\.and\.|
                       |\.not\.|
