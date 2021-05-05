@@ -176,7 +176,10 @@ def fill_characters(scope: SimpleNamespace) -> SimpleNamespace:
     """
     for sd in scope.data:
         if sd[0].lower().startswith("character"):
-            declaration = separate_dimensions(list_to_string(sd[1:]))
+            if sd[1].isdigit():
+                declaration = separate_dimensions(list_to_string(sd[2:]))
+            else:
+                declaration = separate_dimensions(list_to_string(sd[1:]))
             scope.characters.append(declaration)
     return scope
 
@@ -396,7 +399,6 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
             for x in s_iter:
                 # Skip xxx variables in lines like 'if() call xxx()':
                 if x == "call":
-                    next(s_iter)
                     next(s_iter)
 
                 # Skip commented text, e.g. " ier = 0  ! nullify error":

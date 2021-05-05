@@ -8,13 +8,15 @@ def split_rawdata(rawdata: List[str]) -> List[str]:
     rawdata_split = []
     for rd in rawdata:
         if rd.lstrip(" ")[0:4] == "real":
-            rawdata_split.append(split_string_soft(rd))
+            rawdata_split.append(split_string_very_soft(rd))
         elif rd.lstrip(" ")[0:7] == "integer":
+            rawdata_split.append(split_string_very_soft(rd))
+        elif rd.lstrip(" ")[0:9] == "character":
             rawdata_split.append(split_string_soft(rd))
         elif rd.lstrip(" ")[0:9] == "parameter":
-            rawdata_split.append(split_string_soft(rd))
+            rawdata_split.append(split_string_very_soft(rd))
         elif rd.lstrip(" ")[0:9] == "dimension":
-            rawdata_split.append(split_string_soft(rd))
+            rawdata_split.append(split_string_very_soft(rd))
         else:
             rawdata_split.append(split_string_hard(rd))
     return rawdata_split
@@ -32,10 +34,31 @@ def flatten_string_list(l: List[List[str]]) -> List[str]:
     return [item for sublist in l for item in sublist]
 
 
+def split_string_very_soft(s: str,
+                           delimiters:
+                           str =
+                           r''' |
+                            ''') ->\
+                           List[str]:
+    """Split a string using the regex delimiters
+
+    Args:
+        s (str): the string
+        delimiters (str, optional): Regex delimiters.
+                                    Defaults to ' |, | ,|, | etc ...'.
+
+    Returns:
+        List[str]: the splitted string
+    """
+    split_str = re.split(delimiters, s)
+    return list(filter(None, split_str))
+
+
 def split_string_soft(s: str,
                       delimiters:
                       str =
                       r''' |
+                      |\* | \*|\*|
                        ''') ->\
                       List[str]:
     """Split a string using the regex delimiters
