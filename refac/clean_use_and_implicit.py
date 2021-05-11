@@ -28,6 +28,9 @@ def replace_ampersand(rawdata: List[str]) -> List[List[str]]:
                         '&', ' use %s, only: ' % name)
                     next_line += 1
             if rd.lstrip(' ').startswith('parameter'):
+                if rd.lstrip(' ').startswith('parameter('):
+                    rawdata[il] = \
+                        rawdata[il].replace("parameter(", "parameter (")
                 next_line = il+1
                 while rawdata[next_line].lstrip(' ').startswith('&'):
                     rawdata[il] = rawdata[il].rstrip("\n").rstrip(",") + ")"
