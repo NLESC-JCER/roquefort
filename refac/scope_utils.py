@@ -31,7 +31,7 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
 
         if d[0] in start_keyword:
             idx_start.append(i)
-            name.append(d[1].split('(')[0])
+            name.append(d[1].split('(')[0].rstrip('\n'))
 
         if d[0] in end_keyword:
             idx_end.append(i)
@@ -131,9 +131,12 @@ def fill_floats(scope: SimpleNamespace) -> SimpleNamespace:
                    as real numbers.
     """
     for sd in scope.data:
-        if sd[0].lower().startswith("real"):
-            if sd[1].lower().startswith("dimension") and \
-               sd[2].lower().startswith("allocatable"):
+        if sd[0].lower().startswith("real") or \
+           sd[0].lower().startswith("real(dp)"):
+            if (sd[1].lower().startswith("dimension") and
+               sd[2].lower().startswith("allocatable")) or \
+               (sd[1].lower().startswith("allocatable") and
+               sd[2].lower().startswith("save")):
                 declaration = separate_dimensions(list_to_string(sd[4:]))
             else:
                 declaration = separate_dimensions(list_to_string(sd[1:]))
@@ -356,7 +359,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
         sd_strip = []   # a copy of sd without ending lines.
 
         for var in sd:
-            sd_strip.append(var.strip("\n").strip("\t"))
+            sd_strip.append(var.strip("\n").strip("\t").rstrip(","))
 
         if len(sd_strip) == 0:
             continue
@@ -509,7 +512,7 @@ def gather_use_names(scope: SimpleNamespace) -> List[str]:
 
     :param scope:
 
-    :return: List with the name of the imported modules via 'use'. 
+    :return: List with the name of the imported modules via 'use'.
     """
     module_names = []
     for sm in scope.module:
@@ -671,7 +674,6 @@ def add_undeclared_variables(rawdata: List[str],
 
     for var in sorted(scope.bulky_var):
         integer_variables = string.ascii_lowercase[8:14]
-
         # Collect potential integer variables:
         if var[0] in integer_variables:
             if len(new_integers) >= max_line_length * index_integer:
@@ -899,7 +901,7 @@ def delete_parameters(rawdata: List[str]) -> List[str]:
 
 def delete_dimensions(rawdata: List[str]) -> List[str]:
     """Delete lines starting with the word dimensions, e.g:
-       dimension r(3),r_basis(3) 
+       dimension r(3),r_basis(3)
 
     Args:
         rawdata (List[str]): [description]
