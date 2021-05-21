@@ -100,11 +100,11 @@ def fill_module(scope: SimpleNamespace) -> SimpleNamespace:
         if len(s) == 0:
             continue
 
-        if len(s) == 2 and s[0] == "use":
+        if len(s) == 2 and s[0].lower() == "use":
             continue
 
         if len(s) >= 2:
-            if s[0] == 'use' and s[2].startswith('only'):
+            if s[0].lower() == 'use' and s[2].startswith('only'):
 
                 module_name = s[1].rstrip('\n')
                 mod = SimpleNamespace(
@@ -335,7 +335,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "data", "log", "dlog", "exp", "dexp", "mod", "sign", "int",
                "status", "format", "file", "unit", "read", "save", "rewind",
                "character", "backspace", "common", "real", "integer",
-               "cmplx", "complex", "complex*16",
+               "cmplx", "complex", "complex*16", "only",
                "logical", "form", "allocate", "allocated", "allocatable",
                "deallocate", "dreal", "print", "stop",
                "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
@@ -399,7 +399,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
         if len(sd_strip) >= 2:
 
-            if sd_strip[0] in avoid_analysis:
+            if sd_strip[0].lower() in avoid_analysis:
                 continue
 
             # Add variables declared as characters to the exclude list:
