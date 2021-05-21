@@ -141,6 +141,9 @@ def fill_floats(scope: SimpleNamespace) -> SimpleNamespace:
                (sd[1].lower().startswith("allocatable") and
                sd[2].lower().startswith("save")):
                 declaration = separate_dimensions(list_to_string(sd[4:]))
+            elif (sd[1].lower().startswith("dimension(:") and
+                    sd[3].lower().startswith("allocatable")):
+                declaration = separate_dimensions(list_to_string(sd[5:]))
             else:
                 declaration = separate_dimensions(list_to_string(sd[1:]))
             scope.floats.append(declaration)
