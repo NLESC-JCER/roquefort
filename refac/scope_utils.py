@@ -3,7 +3,8 @@ from typing import List
 from types import SimpleNamespace
 from refac.string_utils import (flatten_string_list, has_number,
                                 split_string_hard, list_to_string,
-                                split_string_medium)
+                                split_string_medium,
+                                split_string_with_parenthesis)
 import string
 import re
 
@@ -38,8 +39,8 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
 
     return [SimpleNamespace(name=name, istart=istart,
             data=data[istart:iend], module=[], floats=[],
-                      integers=[], characters=[], parameters=[],
-                      dimensions=[], bulky_var=[])
+                      integers=[], characters=[], complexes=[],
+                      parameters=[], dimensions=[], bulky_var=[])
             for name, istart, iend in zip(name, idx_start, idx_end)]
 
 
@@ -70,6 +71,8 @@ def fill_scopes(rawdata: List[str], scopes: List[SimpleNamespace],
             scope = fill_integers(scope)
             print('  \t+ Filling characters attribute.')
             scope = fill_characters(scope)
+            print('  \t+ Filling complex attribute.')
+            scope = fill_complexes(scope)
             print('  \t+ Filling parameters attribute.')
             scope = fill_parameters(scope)
             print('  \t+ Filling dimensions attribute.')
@@ -187,6 +190,31 @@ def fill_characters(scope: SimpleNamespace) -> SimpleNamespace:
     return scope
 
 
+def fill_complexes(scope: SimpleNamespace) -> SimpleNamespace:
+    """
+    Populate scope.complexes with complexes already declared.
+
+    :param scope: Namespace containing the data.
+
+    :return scope: Return the same SimpleNamespace with the
+                   scope.complexes attribute populated by a
+                   SimpleNamespace with variables declared
+                   as complex numbers.
+    """
+    for sd in scope.data:
+        if sd[0].lower().startswith("complex") or \
+           sd[0].lower().startswith("complex(dp)"):
+            if (sd[1].lower().startswith("dimension") and
+               sd[2].lower().startswith("allocatable")) or \
+               (sd[1].lower().startswith("allocatable") and
+               sd[2].lower().startswith("save")):
+                declaration = separate_dimensions(list_to_string(sd[4:]))
+            else:
+                declaration = separate_dimensions(list_to_string(sd[1:]))
+            scope.complexes.append(declaration)
+    return scope
+
+
 def fill_parameters(scope: SimpleNamespace) -> SimpleNamespace:
     """
     Populate scope.parameters with parameter-declared variables.
@@ -261,25 +289,18 @@ def separate_dimensions(s: str) -> SimpleNamespace:
     if "!" in s:  # Avoid ! comments at the end of the line.
         s = s[:s.index("!")]
     if "(" in s:
-        s_splitted = (s.replace("),", ") ")).split()
-        close_parenethesis = False
-        for i in s_splitted:
-            if "(" and ")" in i:
-                close_parenethesis = True
-            elif "(" in i:
-                close_parenethesis = False
-            elif ")" in i:
-                close_parenethesis = True
-            variable += i
-            if close_parenethesis:
-                variable = variable.replace(",", ", ")
+        s_splitted = split_string_with_parenthesis(s)
+        for variable in s_splitted:
+            if "(" and ")" in variable:
                 variables.append(variable[:variable.index("(")])
                 dimensions.append(variable[variable.index("("):])
-                variable = ""
+            else:
+                variables.append(variable)
+                dimensions.append("None")
     else:
         s_splitted = (s.replace(",", " ")).split()
-        for i in s_splitted:
-            variables.append(i)
+        for variable in s_splitted:
+            variables.append(variable)
             dimensions.append("None")
     return SimpleNamespace(variables=variables, dimensions=dimensions)
 
@@ -311,6 +332,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "data", "log", "dlog", "exp", "dexp", "mod", "sign", "int",
                "status", "format", "file", "unit", "read", "save", "rewind",
                "character", "backspace", "common", "real", "integer",
+               "cmplx", "complex", "complex*16",
                "logical", "form", "allocate", "allocated", "allocatable",
                "deallocate", "dreal", "print", "stop",
                "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
@@ -341,6 +363,10 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
     # Exclude variables already declared as characters:
     for sc in scope.characters:
+        exclude.extend(x.lower() for x in sc.variables)
+
+    # Exclude variables already declared as characters:
+    for sc in scope.complexes:
         exclude.extend(x.lower() for x in sc.variables)
 
     # Exclude variables declared as parameters:
@@ -552,6 +578,8 @@ def modify_rawdata(rawdata: List[str], scopes: List[SimpleNamespace],
                 rawdata = delete_parameters(rawdata)
                 rawdata = delete_dimensions(rawdata)
             else:
+                rawdata = add_parameters(rawdata, scope, index)
+                rawdata = delete_parameters(rawdata)
                 print('      No potential variables found in the scope.')
 
         print('    ... done!\n')
@@ -647,7 +675,7 @@ def clean_raw_data(rawdata: List[str],
 def add_undeclared_variables(rawdata: List[str],
                              scope: SimpleNamespace, index: int) -> List[str]:
     """
-    Add undeclared variaables of a scope in rawdata.
+    Add undeclared variables of a scope in rawdata.
 
     :param rawdata: Entry rawdata to add undeclared variables to.
 
@@ -660,6 +688,7 @@ def add_undeclared_variables(rawdata: List[str],
     # List of integers and floats to add:
     new_integers = ['      integer', ' :: ']
     new_floats = ['      real(dp)', ' :: ']
+    new_complexes = ['      complex(dp)', ' :: ']
 
     # Variables to declare:
     new_variables_to_add = []
@@ -789,6 +818,22 @@ def add_undeclared_variables(rawdata: List[str],
                            and dim_stripped not in use_variables:
                             new_integers.extend([", ", dim_stripped])
 
+    #  Add the integer(dimension_argument) if it is not already declared:
+    if len(scope.complexes):
+        use_variables = gather_use_variables(scope)
+        for sf in scope.complexes:
+            for variable_index, variable in enumerate(sf.variables):
+                if sf.dimensions[variable_index] != "None":
+                    dimension_list = \
+                        split_string_hard(sf.dimensions[variable_index])
+                    for dim in dimension_list:
+                        dim_stripped = (dim.strip("()")).lower()
+                        if dim_stripped != "*" \
+                           and not dim_stripped.isdigit() \
+                           and dim_stripped not in new_complexes \
+                           and dim_stripped not in use_variables:
+                            new_complexes.extend([", ", dim_stripped])
+
     # Add final new line and combine:
     new_integers.append("\n")
     new_floats.append("\n")
@@ -854,6 +899,61 @@ def add_use_precision_kinds(rawdata: List[str],
         rawdata[implicit_indexes[index]:
                 implicit_indexes[index]] = use_statement
 
+    return rawdata
+
+
+def add_parameters(rawdata: List[str],
+                   scope: SimpleNamespace, index: int) -> List[str]:
+    """
+    Add parmeters in case of a empty bulky_var.
+
+    :param rawdata: Entry rawdata to add undeclared variables to.
+
+    :param scope: Scope with the parameters to add.
+
+    :param index: index of scope in the precendent SimpleNamespace.
+
+    :return: Entry rawdata with the new variables declared.
+    """
+    if len(scope.parameters):
+        new_integer_parameters, new_float_parameters = [], []
+        integer_variables = string.ascii_lowercase[8:14]
+        for sd in scope.parameters:
+            for variable_index, variable in enumerate(sd.variables):
+                if variable[0] in integer_variables:
+                    new_integer_parameters.extend([
+                        '      integer', ', ', 'parameter', ' :: ',
+                        sd.variables[variable_index], ' = ',
+                        sd.values[variable_index], "\n"])
+                else:
+                    new_float_parameters.extend([
+                        '      real(dp)', ', ', 'parameter', ' :: ',
+                        sd.variables[variable_index], ' = ',
+                        sd.values[variable_index], "\n"])
+
+        # Add final new line and combine:
+        new_variables_to_add = new_integer_parameters \
+            + new_float_parameters
+
+        # Add declared missed variables to raw data after an "implicit none"
+        # declaration:
+        implicit_indexes = list_duplicates(rawdata, "implicit none")
+        rawdata[implicit_indexes[index]+1:
+                implicit_indexes[index]] = new_variables_to_add
+
+        # For future references, add new_variables_to_add to scope after
+        # the last 'use':
+        insert_index = 0
+        for sd_index, sd in enumerate(scope.data):
+            if sd[0] == 'use':
+                insert_index = sd_index
+        # If there is not any 'use' statement, insert before a 'implicit':
+        if insert_index == 0:
+            for sd_index, sd in enumerate(scope.data):
+                if sd[0] == 'implicit':
+                    insert_index = sd_index
+
+        scope.data.insert(insert_index, new_variables_to_add)
     return rawdata
 
 

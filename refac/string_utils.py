@@ -1,5 +1,7 @@
 """ Utilities for string manipulation."""
 from typing import List
+from pyparsing import (quotedString, OneOrMore, Word, originalTextFor,
+                       nestedExpr, delimitedList, printables)
 import re
 
 
@@ -13,6 +15,8 @@ def split_rawdata(rawdata: List[str]) -> List[str]:
             rawdata_split.append(split_string_very_soft(rd))
         elif rd.lstrip(" ")[0:9] == "character":
             rawdata_split.append(split_string_soft(rd))
+        elif rd.lstrip(" ")[0:7] == "complex":
+            rawdata_split.append(split_string_very_soft(rd))
         elif rd.lstrip(" ")[0:9] == "parameter":
             rawdata_split.append(split_string_very_soft(rd))
         elif rd.lstrip(" ")[0:9] == "dimension":
@@ -165,3 +169,21 @@ def list_to_string(entry_list: list) -> str:
     for element in entry_list:
         str1 += element
     return str1
+
+
+def split_string_with_parenthesis(s: str) -> list:
+    """
+    Split string with commas and parenthesis, e.g.:
+    s = "index(3,4), n,indx(n, m),m,nstack" ->
+                     ['index(3,4)', 'n', 'indx(n, m)', 'm', 'nstack']
+
+    :param s: str to be divided.
+
+    :return: list with the string splitted.
+    """
+    value = (quotedString
+             | originalTextFor(OneOrMore(Word(printables, excludeChars="(),")
+                                         | nestedExpr())))
+    # define an overall expression, with surrounding ()'s
+    expr = delimitedList(value)
+    return expr.parseString(s).asList()
