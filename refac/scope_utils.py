@@ -35,7 +35,10 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
             name.append(d[1].split('(')[0].rstrip('\n'))
 
         if d[0] in end_keyword:
-            idx_end.append(i)
+            if len(d) > 1 and d[1] != "if":
+                continue
+            else:
+                idx_end.append(i)
 
     return [SimpleNamespace(name=name, istart=istart,
             data=data[istart:iend], module=[], floats=[],
@@ -338,9 +341,9 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "character", "backspace", "common", "real", "integer",
                "cmplx", "complex", "complex*16", "only",
                "logical", "form", "allocate", "allocated", "allocatable",
-               "deallocate", "dreal", "print", "stop",
+               "deallocate", "dreal", "print", "stop", "subroutine",
                "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
-               "mpi_real8", "+", "=",
+               "mpi_real8", "+", "=", "module",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision", "::",
                "\t", "\n"]
