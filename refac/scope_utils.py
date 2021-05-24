@@ -135,7 +135,8 @@ def fill_floats(scope: SimpleNamespace) -> SimpleNamespace:
     """
     for sd in scope.data:
         if sd[0].lower().startswith("real") or \
-           sd[0].lower().startswith("real(dp)"):
+           sd[0].lower().startswith("real(dp)") or\
+           sd[0].lower().startswith("real(kind=8)"):
             if (sd[1].lower().startswith("dimension") and
                sd[2].lower().startswith("allocatable")) or \
                (sd[1].lower().startswith("allocatable") and
@@ -339,7 +340,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "logical", "form", "allocate", "allocated", "allocatable",
                "deallocate", "dreal", "print", "stop",
                "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
-               "mpi_real8",
+               "mpi_real8", "+", "=",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision", "::",
                "\t", "\n"]
@@ -995,8 +996,9 @@ def delete_parameters(rawdata: List[str]) -> List[str]:
     Returns:
         List[List[str]]: [description]
     """
-    rawdata = [rd for rd in rawdata if not(
+    rawdata = [rd for rd in rawdata if not((
                rd.lstrip(" ").startswith("parameter")
+               and not rd.lstrip(" ") == "parameters")
                and len(rd.lstrip(" ")) > 9)]
 
     return rawdata
