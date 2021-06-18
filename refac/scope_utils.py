@@ -29,13 +29,13 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
 
         if len(d) == 0:
             continue
-
         if d[0] in start_keyword:
+            print("Pablo says d[0]", d[0])
             idx_start.append(i)
             name.append(d[1].split('(')[0].rstrip('\n'))
 
         if d[0] in end_keyword:
-            if len(d) > 1 and d[1] != "if":
+            if len(d) > 1 and d[1] == "if":
                 continue
             else:
                 idx_end.append(i)
@@ -509,7 +509,6 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                     if len(variable) > 0 and variable.lower() \
                        not in exclude and not is_scientific_number:
                         sd_copy.append(variable)
-                bulky_var.append(sd_copy)
 
                 # Reset booleans if x is a quoted_one_word:
                 if quoted_one_word:
@@ -517,6 +516,9 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                     if double_quote:
                         double_quote = False
                     quoted_sign = ""
+
+            if len(sd_copy):
+                bulky_var.append(sd_copy)
 
     # Finish by deleting redundancies:
     scope.bulky_var = (list(dict.fromkeys(flatten_string_list(bulky_var))))
