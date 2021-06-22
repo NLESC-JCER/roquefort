@@ -26,7 +26,9 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
     # get the index of start/end scope
     name, idx_start, idx_end = [], [], []
     for i, d in enumerate(data):
-
+        
+        d = [el.lower() for el in d]
+        
         if len(d) == 0:
             continue
         if d[0] in start_keyword:
