@@ -21,7 +21,7 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
 
     # identifier for scoping
     start_keyword = ['subroutine', 'function', 'program', 'module']
-    end_keyword = ['end', 'end\n', 'END', 'END\n']
+    end_keyword = ['end', 'end\n']
 
     # get the index of start/end scope
     name, idx_start, idx_end = [], [], []
