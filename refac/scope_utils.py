@@ -338,7 +338,7 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "data", "log", "dlog", "exp", "dexp", "mod", "sign", "int",
                "status", "format", "file", "unit", "read", "save", "rewind",
                "character", "backspace", "common", "real", "integer",
-               "cmplx", "complex", "complex*16", "only",
+               "cmplx", "complex", "complex*16", "only", "while",
                "logical", "form", "allocate", "allocated", "allocatable",
                "deallocate", "dreal", "print", "stop", "subroutine",
                "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
