@@ -341,8 +341,8 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "cmplx", "complex", "complex*16", "only", "while",
                "logical", "form", "allocate", "allocated", "allocatable",
                "deallocate", "dreal", "print", "stop", "subroutine",
-               "dfloat", "dsqrt", "dcos", "dsin", "sin","sqrt", "continue",
-               "mpi_real8", "+", "=", "module",
+               "dfloat", "dsqrt", "dcos", "dsin", "sin", "cos", "sqrt",
+               "continue", "mpi_real8", "+", "=", "module",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision", "::",
                "\t", "\n"]
