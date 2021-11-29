@@ -49,7 +49,7 @@ def refac_do(filename,args):
     match = do_label_re.match(line)
     if match:
       # append to stack of dos found
-      log.info("We have found do statement   : %s"%match.group(2))
+      log.debug("We have found do statement   : %s"%match.group(2))
       dos.append(match.group(2))
       do_stack.append(match.group(2))
       do_indent.append(len(match.group(1)))
@@ -59,7 +59,7 @@ def refac_do(filename,args):
     match = label_re.match(line)
     if match:
       # pop dos in reverse order, addend do per label match, remove continue
-      log.info("We have found label statement: %s"%match.group(1))
+      log.debug("We have found label statement: %s"%match.group(1))
       if len(do_stack) > 0:
         # do we have to edit?
         if do_stack[-1] == match.group(1):
@@ -91,7 +91,7 @@ def refac_do(filename,args):
 
     match = goto_re.search(line)
     if match:
-      log.info("We have found goto statement : %s"%match.group(1))
+      log.debug("We have found goto statement : %s"%match.group(1))
       gotos.append(match.group(1))
 
   log.debug(do_stack)
@@ -137,8 +137,10 @@ if __name__ == '__main__':
                      , help="logging level [0,10,20,30,40,50] lower is more")
   args = parser.parse_args()
 
-
-  logging.basicConfig(level=args.loglevel)
+  if args.logfile:
+    logging.basicConfig(level=args.loglevel, filename=args.logfile)
+  else:
+    logging.basicConfig(level=args.loglevel)
 
   for file in args.files:
     log.info("processing %s"%file)
