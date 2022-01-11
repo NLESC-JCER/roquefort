@@ -21,7 +21,7 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
 
     # identifier for scoping
     start_keyword = ['subroutine', 'function', 'program', 'module']
-    end_keyword = ['end', 'end\n']
+    end_keyword = ['end', 'end\n', 'END', 'END\n']
 
     skip_keyword = ['interface', 'interface\n']
     skip_block = False
@@ -34,6 +34,7 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
 
         if len(d) == 0:
             continue
+
 
         if d[0].lower() in skip_keyword:
             skip_block = True
@@ -52,8 +53,12 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
             idx_start.append(i)
             name.append(d[1].split('(')[0].rstrip('\n'))
 
-        if d[0].lower() in end_keyword:
-            idx_end.append(i)
+        if d[0] in end_keyword:
+            if len(d) > 1 and d[1] == "if":
+                continue
+            else:
+                idx_end.append(i)
+
 
     return [SimpleNamespace(name=name, istart=istart,
                             data=data[istart:iend], module=[
@@ -154,7 +159,8 @@ def fill_floats(scope: SimpleNamespace) -> SimpleNamespace:
     """
     for sd in scope.data:
         if sd[0].lower().startswith("real") or \
-           sd[0].lower().startswith("real(dp)"):
+           sd[0].lower().startswith("real(dp)") or\
+           sd[0].lower().startswith("real(kind=8)"):
             if (sd[1].lower().startswith("dimension") and
                 sd[2].lower().startswith("allocatable")) or \
                (sd[1].lower().startswith("allocatable") and
@@ -365,11 +371,11 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                "data", "log", "dlog", "exp", "dexp", "mod", "sign", "int",
                "status", "format", "file", "unit", "read", "save", "rewind",
                "character", "backspace", "common", "real", "integer",
-               "cmplx", "complex", "complex*16", "only",
+               "cmplx", "complex", "complex*16", "only", "while",
                "logical", "form", "allocate", "allocated", "allocatable",
-               "deallocate", "dreal", "print", "stop",
-               "dfloat", "dsqrt", "dcos", "dsin", "sqrt", "continue",
-               "mpi_real8",
+               "deallocate", "dreal", "print", "stop", "subroutine",
+               "dfloat", "dsqrt", "dcos", "dsin", "sin", "cos", "sqrt",
+               "continue", "mpi_real8", "+", "=", "module",
                "mpi_status_size", "mpi_integer", "mpi_sum", "mpi_max",
                "mpi_comm_world", "mpi_double_precision", "::",
                "\t", "\n"]
@@ -538,7 +544,6 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                     if len(variable) > 0 and variable.lower() \
                        not in exclude and not is_scientific_number:
                         sd_copy.append(variable)
-                bulky_var.append(sd_copy)
 
                 # Reset booleans if x is a quoted_one_word:
                 if quoted_one_word:
@@ -546,6 +551,9 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                     if double_quote:
                         double_quote = False
                     quoted_sign = ""
+
+            if len(sd_copy):
+                bulky_var.append(sd_copy)
 
     # Finish by deleting redundancies:
     scope.bulky_var = (
@@ -1049,8 +1057,9 @@ def delete_parameters(rawdata: List[str]) -> List[str]:
     Returns:
         List[List[str]]: [description]
     """
-    rawdata = [rd for rd in rawdata if not(
+    rawdata = [rd for rd in rawdata if not((
                rd.lstrip(" ").startswith("parameter")
+               and not rd.lstrip(" ") == "parameters")
                and len(rd.lstrip(" ")) > 9)]
 
     return rawdata
