@@ -23,24 +23,43 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
     start_keyword = ['subroutine', 'function', 'program', 'module']
     end_keyword = ['end', 'end\n']
 
+    skip_keyword = ['interface', 'interface\n']
+    skip_block = False
+
     # get the index of start/end scope
     name, idx_start, idx_end = [], [], []
     for i, d in enumerate(data):
 
+        d = [el.lstrip('\t').lower() for el in d]
+
         if len(d) == 0:
             continue
 
-        if d[0] in start_keyword:
+        if d[0].lower() in skip_keyword:
+            skip_block = True
+
+        if skip_block:
+
+            if d[0].lower() in end_keyword:
+                if len(d) > 1:
+                    if d[1].lower() in skip_keyword:
+                        skip_block = False
+
+            continue
+
+        if d[0].lower() in start_keyword:
+            print(d)
             idx_start.append(i)
             name.append(d[1].split('(')[0].rstrip('\n'))
 
-        if d[0] in end_keyword:
+        if d[0].lower() in end_keyword:
             idx_end.append(i)
 
     return [SimpleNamespace(name=name, istart=istart,
-            data=data[istart:iend], module=[], floats=[],
-                      integers=[], characters=[], complexes=[],
-                      parameters=[], dimensions=[], bulky_var=[])
+                            data=data[istart:iend], module=[
+                            ], floats=[],
+                            integers=[], characters=[], complexes=[],
+                            parameters=[], dimensions=[], bulky_var=[])
             for name, istart, iend in zip(name, idx_start, idx_end)]
 
 
@@ -137,15 +156,18 @@ def fill_floats(scope: SimpleNamespace) -> SimpleNamespace:
         if sd[0].lower().startswith("real") or \
            sd[0].lower().startswith("real(dp)"):
             if (sd[1].lower().startswith("dimension") and
-               sd[2].lower().startswith("allocatable")) or \
+                sd[2].lower().startswith("allocatable")) or \
                (sd[1].lower().startswith("allocatable") and
-               sd[2].lower().startswith("save")):
-                declaration = separate_dimensions(list_to_string(sd[4:]))
+                    sd[2].lower().startswith("save")):
+                declaration = separate_dimensions(
+                    list_to_string(sd[4:]))
             elif (sd[1].lower().startswith("dimension(:") and
                     sd[3].lower().startswith("allocatable")):
-                declaration = separate_dimensions(list_to_string(sd[5:]))
+                declaration = separate_dimensions(
+                    list_to_string(sd[5:]))
             else:
-                declaration = separate_dimensions(list_to_string(sd[1:]))
+                declaration = separate_dimensions(
+                    list_to_string(sd[1:]))
             scope.floats.append(declaration)
     return scope
 
@@ -165,9 +187,11 @@ def fill_integers(scope: SimpleNamespace) -> SimpleNamespace:
         if sd[0].lower().startswith("integer"):
             if sd[1].lower().startswith("dimension") and \
                sd[2].lower().startswith("allocatable"):
-                declaration = separate_dimensions(list_to_string(sd[4:]))
+                declaration = separate_dimensions(
+                    list_to_string(sd[4:]))
             else:
-                declaration = separate_dimensions(list_to_string(sd[1:]))
+                declaration = separate_dimensions(
+                    list_to_string(sd[1:]))
             scope.integers.append(declaration)
     return scope
 
@@ -186,9 +210,11 @@ def fill_characters(scope: SimpleNamespace) -> SimpleNamespace:
     for sd in scope.data:
         if sd[0].lower().startswith("character"):
             if sd[1].isdigit():
-                declaration = separate_dimensions(list_to_string(sd[2:]))
+                declaration = separate_dimensions(
+                    list_to_string(sd[2:]))
             else:
-                declaration = separate_dimensions(list_to_string(sd[1:]))
+                declaration = separate_dimensions(
+                    list_to_string(sd[1:]))
             scope.characters.append(declaration)
     return scope
 
@@ -208,12 +234,14 @@ def fill_complexes(scope: SimpleNamespace) -> SimpleNamespace:
         if sd[0].lower().startswith("complex") or \
            sd[0].lower().startswith("complex(dp)"):
             if (sd[1].lower().startswith("dimension") and
-               sd[2].lower().startswith("allocatable")) or \
+                sd[2].lower().startswith("allocatable")) or \
                (sd[1].lower().startswith("allocatable") and
-               sd[2].lower().startswith("save")):
-                declaration = separate_dimensions(list_to_string(sd[4:]))
+                    sd[2].lower().startswith("save")):
+                declaration = separate_dimensions(
+                    list_to_string(sd[4:]))
             else:
-                declaration = separate_dimensions(list_to_string(sd[1:]))
+                declaration = separate_dimensions(
+                    list_to_string(sd[1:]))
             scope.complexes.append(declaration)
     return scope
 
@@ -245,6 +273,7 @@ def separate_parameters(s: str) -> SimpleNamespace:
 
     :return: SimpleNamespace.variables and SimpleNamespace.values.
     """
+
     variables, values = [], []
 
     if "!" in s:  # Avoid ! comments at the end of the line.
@@ -252,6 +281,7 @@ def separate_parameters(s: str) -> SimpleNamespace:
     s_splitted = (s[1:].replace("\n", ""))[:-1].split(",")
 
     for i in s_splitted:
+
         variables.append(i.split("=")[0])
         values.append(i.split("=")[1])
     return SimpleNamespace(variables=variables, values=values)
@@ -384,7 +414,8 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
     bulky_var = []  # carry all the selected variables in scope.data.
 
     for sd in scope.data:
-        sd_copy = []    # carry the selected variables per scope.data line.
+        # carry the selected variables per scope.data line.
+        sd_copy = []
         sd_strip = []   # a copy of sd without ending lines.
 
         for var in sd:
@@ -404,7 +435,8 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
 
             # Add variables declared as characters to the exclude list:
             if sd_strip[0].lower() == "character":
-                character_var = [x for x in sd_strip[1:] if not x.isdigit()]
+                character_var = [
+                    x for x in sd_strip[1:] if not x.isdigit()]
                 exclude.extend(character_var)
 
             starting_point = 0
@@ -427,7 +459,8 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                 continue
 
             # Start the main loop:
-            s_iter = iter(x for x in sd_strip[starting_point:] if len(x))
+            s_iter = iter(
+                x for x in sd_strip[starting_point:] if len(x))
             for x in s_iter:
                 # Skip xxx variables in lines like 'if() call xxx()':
                 if x == "call":
@@ -515,7 +548,8 @@ def fill_bulky_var(scope: SimpleNamespace) -> SimpleNamespace:
                     quoted_sign = ""
 
     # Finish by deleting redundancies:
-    scope.bulky_var = (list(dict.fromkeys(flatten_string_list(bulky_var))))
+    scope.bulky_var = (
+        list(dict.fromkeys(flatten_string_list(bulky_var))))
     return scope
 
 
@@ -576,8 +610,10 @@ def modify_rawdata(rawdata: List[str], scopes: List[SimpleNamespace],
         # add undeclared variables:
         if clean_implicit:
             if len(scope.bulky_var):
-                rawdata = add_undeclared_variables(rawdata, scope, index)
-                rawdata = add_use_precision_kinds(rawdata, scope, index)
+                rawdata = add_undeclared_variables(
+                    rawdata, scope, index)
+                rawdata = add_use_precision_kinds(
+                    rawdata, scope, index)
                 rawdata = delete_parameters(rawdata)
                 rawdata = delete_dimensions(rawdata)
             else:
@@ -598,10 +634,23 @@ def count_var(scope: SimpleNamespace) -> SimpleNamespace:
     Returns:
         SimpleNamespace: [description]
     """
-    # Avoid to count variables in commented lines:
-    exclude = ["c", "C", "!"]
-    data_copy = [var for index, var in enumerate(scope.data)
-                 if var[0] not in exclude]
+    # Avoid to count variables in commented lines
+    # and in use statements
+    exclude = ["c", "C", "!", "use"]
+    # data_copy = [var for index, var in enumerate(scope.data)
+    #              if var[0] not in exclude]
+
+    # remove commented lines and comment tha
+    # are in the middle of the line
+    data_copy = []
+    for index, var in enumerate(scope.data):
+        if var[0] not in exclude:
+            idx = [ii for ii, v in enumerate(
+                var) if v.startswith('!')]
+            if len(idx) > 0:
+                data_copy.append(var[:idx[0]])
+            else:
+                data_copy.append(var)
 
     for mod in scope.module:
         for var in mod.var:
@@ -624,7 +673,7 @@ def count(scope_data: List[str], varname: str) -> int:
     joined_data = ' ' + \
         ' '.join(flatten_string_list(scope_data)) + ' '
     pattern = re.compile('[\W\s]' + varname + '[\W\s]', re.IGNORECASE)
-    return len(pattern.findall(joined_data))-1
+    return len(pattern.findall(joined_data))
 
 
 def clean_raw_data(rawdata: List[str],
@@ -781,7 +830,8 @@ def add_undeclared_variables(rawdata: List[str],
                     split_string_medium(sd.dimensions[variable_index])
                 dim_stripped = []
                 for dl in dimension_list:
-                    dim_stripped = split_string_hard((dl.strip("()")).lower())
+                    dim_stripped = split_string_hard(
+                        (dl.strip("()")).lower())
                     for ds in dim_stripped:
                         if ds != "*" \
                            and not ds.isdigit() \
@@ -796,7 +846,8 @@ def add_undeclared_variables(rawdata: List[str],
             for variable_index, variable in enumerate(sf.variables):
                 if sf.dimensions[variable_index] != "None":
                     dimension_list = \
-                        split_string_hard(sf.dimensions[variable_index])
+                        split_string_hard(
+                            sf.dimensions[variable_index])
                     for dim in dimension_list:
                         dim_stripped = (dim.strip("()")).lower()
                         if dim_stripped != "*" \
@@ -812,7 +863,8 @@ def add_undeclared_variables(rawdata: List[str],
             for variable_index, variable in enumerate(sf.variables):
                 if sf.dimensions[variable_index] != "None":
                     dimension_list = \
-                        split_string_hard(sf.dimensions[variable_index])
+                        split_string_hard(
+                            sf.dimensions[variable_index])
                     for dim in dimension_list:
                         dim_stripped = (dim.strip("()")).lower()
                         if dim_stripped != "*" \
@@ -828,7 +880,8 @@ def add_undeclared_variables(rawdata: List[str],
             for variable_index, variable in enumerate(sf.variables):
                 if sf.dimensions[variable_index] != "None":
                     dimension_list = \
-                        split_string_hard(sf.dimensions[variable_index])
+                        split_string_hard(
+                            sf.dimensions[variable_index])
                     for dim in dimension_list:
                         dim_stripped = (dim.strip("()")).lower()
                         if dim_stripped != "*" \
@@ -883,7 +936,8 @@ def add_use_precision_kinds(rawdata: List[str],
     :return: Entry rawdata with the 'use precision_kinds' statement inserted.
     """
     new_floats = False  # True if a real(dp) is declared.
-    precision_kinds = False  # True if a 'use precision_kinds' is declared.
+    # True if a 'use precision_kinds' is declared.
+    precision_kinds = False
 
     # Get indexes:
     implicit_indexes = list_duplicates(rawdata, "implicit none")
