@@ -1,6 +1,6 @@
 """Utilities to read a write data."""
 from typing import List
-
+import os
 
 def read_file(filename: str) -> List[str]:
     """Read the data file and returns a list of strings
@@ -42,8 +42,11 @@ def get_new_filename(filename: str) -> str:
 
     :return: New name composed as filename + _copy. + extension.
     """
-    base, ext = filename.split('.')
-    return base + '_copy.' + ext
+    base_name = os.path.basename(filename)
+    base, ext = base_name.split('.')
+    fpath = os.path.dirname(filename)
+    new_name = base +'_copy.' + ext
+    return os.path.join(fpath,new_name)
 
 
 def rise_error(file: str, function: str, type: str, message: str):
