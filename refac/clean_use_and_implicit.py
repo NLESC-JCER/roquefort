@@ -119,13 +119,13 @@ def clean_statements(args: argparse.ArgumentParser) -> \
 
     # Read the data file and split it:
     rawdata = read_file(args.filename)
-
+    
     # Prepare data to be splitted in scopes, remove &'s, implicit real, etc:
     data = process_data(rawdata, clean_implicit)
-
+    print(data)
     # Separate in scope:
     scopes = separate_scope(data)
-
+    
     # Fill attributes of scopes:
     scopes = fill_scopes(rawdata, scopes, clean_implicit)
 
