@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """ Parser of arguments. """
 from refac.clean_common import Refactor
-from refac.clean_use_and_implicit import clean_statements
+from refac.clean_use_and_implicit import clean_statements, move_variable
 from pathlib import Path
 import argparse
 from argparse import RawTextHelpFormatter
@@ -58,6 +58,20 @@ if __name__ == "__main__":
     clean_implicit.add_argument('-ow', '--overwrite', action='store_true',
                                 help='Overwrite the inputfile')
 
+    # 4. --action move_var subarguments:
+    clean_implicit = \
+        subpasers.add_parser('move_var',
+                             help='Move a variable to a new module.')
+    clean_implicit.add_argument("--filename", type=str,
+                                help="Name of the file to clean")
+    clean_implicit.add_argument("--var_name", type=str,
+                                help="Name of the variable to move")
+    clean_implicit.add_argument("--new_module", type=str,
+                                help="Name of the new module")
+
+    clean_implicit.add_argument('-ow', '--overwrite', action='store_true',
+                                help='Overwrite the inputfile')
+
     args = parser.parse_args()
 
     # Rise errors if arguments are not properly given:
@@ -81,3 +95,5 @@ if __name__ == "__main__":
             rs.refactor()
         elif args.command == "clean_use" or args.command == "clean_implicit":
              scope = clean_statements(args)
+        elif args.command == 'move_var':
+             scope = move_variable(args)

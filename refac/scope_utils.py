@@ -49,7 +49,7 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
             continue
 
         if d[0].lower() in start_keyword:
-            print(d)
+            # print(d)
             idx_start.append(i)
             name.append(d[1].split('(')[0].rstrip('\n'))
 
@@ -633,6 +633,31 @@ def modify_rawdata(rawdata: List[str], scopes: List[SimpleNamespace],
     return rawdata
 
 
+def modify_rawdata_move_var(rawdata: List[str], scopes: List[SimpleNamespace],
+                   var_name: str,
+                   new_module: str) -> List[str]:
+    """ Modify rawdata input according to scopes and argument flags.
+
+    :param rawdata: List of the bulky content of the read file.
+
+    :param scopes: List of scopes.
+
+    :param var_name: Name of the new variable.
+
+    :param new_module: name of the new module
+
+    :return: rawdata with modifications.
+    """
+    for index, scope in enumerate(scopes):
+        print('  - Modifying rawdata of scope: %s' % scope.name)
+                
+        # clean the raw data
+        rawdata = remove_variable(rawdata, scope, var_name, new_module)
+
+        print('    ... done!\n')
+    return rawdata
+
+
 def count_var(scope: SimpleNamespace) -> SimpleNamespace:
     """[summary]
 
@@ -728,6 +753,72 @@ def clean_raw_data(rawdata: List[str],
             while rawdata[idx_rawdata].lstrip(' ').startswith('&'):
                 rawdata[idx_rawdata] = ''
                 idx_rawdata += 1
+
+    return rawdata
+
+
+def remove_variable(rawdata: List[str],
+                    scope: SimpleNamespace, var_name: str, new_module: str) -> List[str]:
+    """
+
+    Args:
+        rawdata (List[str]): [description]
+        scope (SimpleNamespace): [description]
+
+    Returns:
+        List[str]: [description]
+    """
+
+
+    for mod in scope.module:
+
+        print('  --  Module : %s' % mod.name)
+        
+        nvar = 0
+        for v in mod.var:
+            if v.name != var_name:
+                nvar += 1
+        
+        
+        idx_rawdata = scope.istart + mod.iline
+
+        if nvar == 0:
+            print('      Only variable %s in module %s, removing the entire module' %(var_name, mod.name))
+            rawdata[idx_rawdata] = ''
+            idx_rawdata += 1
+            while rawdata[idx_rawdata].lstrip(' ').startswith('&'):
+                rawdata[idx_rawdata] = ''
+                idx_rawdata += 1
+
+        else:
+
+            ori_line = rawdata[idx_rawdata]
+            line = ori_line.split(
+                'use')[0] + 'use ' + mod.name + ', only: '
+
+            for var in mod.var:
+                if var.name != var_name:
+                    line += var.name + ', '
+                else:
+                    print('  ---   removing variable %s' %
+                          var.name)
+            rawdata[idx_rawdata] = line.rstrip(', ') + '\n'
+
+            # remove the unwanted
+            idx_rawdata += 1
+            while rawdata[idx_rawdata].lstrip(' ').startswith('&'):
+                rawdata[idx_rawdata] = ''
+                idx_rawdata += 1
+
+    # add a new line to the module use  
+    print('  ---   adding variable %s to module %s' %
+                          (var_name, new_module))
+    idx_use = [idx for idx, line in enumerate(rawdata) if line.lstrip().startswith('use')]
+    new_line = rawdata[idx_use[-1]]
+    new_line = new_line.split('use')[0] + 'use ' + new_module + ', only: ' + var_name + '\n'
+    
+    rawdata.insert(idx_use[-1]+1, new_line)
+    
 
     return rawdata
 

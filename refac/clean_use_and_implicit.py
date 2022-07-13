@@ -3,7 +3,7 @@ import os
 from types import SimpleNamespace
 from typing import List
 from refac.io_utils import read_file, save_file, get_new_filename, rise_error
-from refac.scope_utils import separate_scope, fill_scopes, modify_rawdata
+from refac.scope_utils import separate_scope, fill_scopes, modify_rawdata, modify_rawdata_move_var
 from refac.string_utils import split_rawdata
 import argparse
 
@@ -122,7 +122,7 @@ def clean_statements(args: argparse.ArgumentParser) -> \
     
     # Prepare data to be splitted in scopes, remove &'s, implicit real, etc:
     data = process_data(rawdata, clean_implicit)
-    print(data)
+   
     # Separate in scope:
     scopes = separate_scope(data)
     
@@ -141,3 +141,45 @@ def clean_statements(args: argparse.ArgumentParser) -> \
         save_file(new_filename, modified_rawdata)
 
     return scopes
+
+def move_variable(args: argparse.ArgumentParser) -> \
+        List[SimpleNamespace]:
+    """Move a variable from one module to another
+
+    :param args: argparse arguments, namely:
+                    args.filename,
+                    args.overwrite.
+
+    :return: List[] of SimpleNamespace cotaining the scooped data.
+    """
+    print('=')
+    print('= Move variable %s to module %s in file %s' % (args.var_name, args.new_module, args.filename))
+    print('=')
+
+
+
+    # Read the data file and split it:
+    rawdata = read_file(args.filename)
+    
+    # Prepare data to be splitted in scopes, remove &'s, implicit real, etc:
+    data = process_data(rawdata, clean_implicit=False)
+   
+    # Separate in scope:
+    scopes = separate_scope(data)
+    
+    # Fill attributes of scopes:
+    scopes = fill_scopes(rawdata, scopes, clean_implicit=False)
+
+    # Modify rawdata according to scopes and flag options:
+    modified_rawdata = modify_rawdata_move_var(rawdata, scopes, 
+                                       args.var_name, args.new_module)
+
+    # save file copy
+    if args.overwrite:
+        save_file(args.filename, modified_rawdata)
+    else:
+        new_filename = get_new_filename(args.filename)
+        save_file(new_filename, modified_rawdata)
+
+    return scopes
+
