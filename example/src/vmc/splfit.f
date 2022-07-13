@@ -4,6 +4,7 @@ c get spline_fit at r of basis fn irb of center ic and force iwf
 c 1st and 2nd derivs also calculated if ider=1.
 
       implicit real*8(a-h,o-z)
+
       include 'vmc.h'
       include 'numbas.h'
       include 'force.h'
@@ -13,8 +14,8 @@ c 1st and 2nd derivs also calculated if ider=1.
       common /numbas/ arg(MCTYPE),r0(MCTYPE)
      &,rwf(MRWF_PTS,MRWF,MCTYPE,MWF),d2rwf(MRWF_PTS,MRWF,MCTYPE,MWF)
      &,numr,nrbas(MCTYPE),igrid(MCTYPE),nr(MCTYPE),iwrwf(MBASIS,MCTYPE)
-      common /numexp/ce(NCOEF,MRWF,MCTYPE,MFORCE),ae(2,MRWF,MCTYPE,MFORCE)
-
+      common /numexp/ ae(2,MRWF,MCTYPE,MFORCE), ce(NCOEF,MRWF,MCTYPE,MFORCE)
+      
       dimension wfv(4)
 
       if(igrid(ic).eq.1)then
