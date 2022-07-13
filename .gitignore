@@ -23,6 +23,9 @@ docs/apidocs
 *~
 *.swp
 
+# test file
+*_copy.*
+
 # Distribution / packaging
 .Python
 env/
