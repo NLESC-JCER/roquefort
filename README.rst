@@ -62,7 +62,7 @@ To remove common blocks:
 
 .. code-block:: console
 
-  python roquefort_fortran.py --action clean_common -n mod1 -p ./example/
+  python refac_fortran.py --action clean_common -n mod1 -p ./example/
 
 Leads to the code :
 
@@ -128,7 +128,7 @@ The variable `var2` of `mod1` is not used. We can remove that variable with
 
 .. code-block:: console
 
-  python roquefort_fortran.py --action clean_use --filename ../example/test_use.f
+  python refac_fortran.py --action clean_use --filename ../example/test_use.f
 
 
 Leading to 
@@ -175,7 +175,7 @@ implicitly declare variables `x`, `y` and `i`. We can make the declaration impli
 
 .. code-block:: console
 
-  python roquefort_fortran.py --action clean_implicit --filename ../example/test_implicit.f 
+  python refac_fortran.py --action clean_implicit --filename ../example/test_implicit.f 
 
 Leading to :
 
@@ -245,7 +245,7 @@ We might wish to move `var3` to a new module called `modx`. This can be done wit
 
 .. code-block:: console
 
-  python roquefort_fortran.py --action move_var --var_name var3 --new_module modx --filename ../example/test_move_var.f 
+  python refac_fortran.py --action move_var --var_name var3 --new_module modx --filename ../example/test_move_var.f 
 
 Leading to :
 
