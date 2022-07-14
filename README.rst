@@ -70,27 +70,191 @@ To remove common blocks:
 
   python roquefort_fortran.py --action clean_common -n mod1 -p ./example/
 
+Leads to the code :
+
+.. code-block:: fortran
+
+      subroutine func()
+
+
+      use mod1, only: var1, var2
+      implicit real*8(a-h,o-z)
+
+
+      common /mod2/ var3, var4
+      
+
+      x = var1
+      y = var2
+
+      i = 2
+      
+      end
+
+with the additional module file 
+
+.. code-block:: fortran
+
+ module mod1
+   !> Arguments: var1, var2
+   use precision_kinds, only: dp
+   include 'vmc.h'
+
+    real(dp) :: var1
+    real(dp) :: var2
+    private
+
+    public :: var1, var2
+    save
+ end module mod1
+
 Clean unused imported variable
 *********************************
 
-To clean variables in use statements:
+Unused varialbe can pollute use statements. For example in the code
+
+.. code-block:: fortran
+
+      subroutine func()
+
+      use mod1, only: var1, var2
+      use mod2, only: var3
+
+      implicit none
+
+      integer :: i, j
+
+      i = var1
+      j = var3
+
+      end
+
+The variable `var2` of `mod1` is not used. We can remove that variable with
+
 
 .. code-block:: console
 
-  python roquefort_fortran.py --action clean_use --filename regterg.f90
+  python roquefort_fortran.py --action clean_use --filename ../example/test_use.f
 
-To remove implicit real statements:
+
+Leading to 
+
+.. code-block:: fortran
+
+      subroutine func()
+
+      use mod1, only: var1
+      use mod2, only: var3
+
+      implicit none
+
+      integer :: i, j
+
+      i = var1
+      j = var3
+
+      end
+
+Remove implicit variable
+*********************************
+
+Implicit declaration of variable were common but lead to unclarity in the code. 
+We can remove all implicit declaration  and automatically declare variables. For example the code 
 
 .. code-block:: console
 
-  python roquefort_fortran.py --action clean_implicit --filename splfit.f -ow
+      subroutine func()
 
-Documentation
-*************
+      use mod1, only: var1
+      use mod2, only: var2
 
-.. _README:
+      implicit real*8(a-h,o-z)
 
-Include a link to your project's full documentation here.
+      x = var1
+      y = var2
+
+      i = 2
+      
+      end
+
+implicitly declare variables `x`, `y` and `i`. We can make the declaration implicit with :
+
+.. code-block:: console
+
+  python roquefort_fortran.py --action clean_implicit --filename ../example/test_implicit.f 
+
+Leading to :
+
+.. code-block:: fortran
+
+
+      subroutine func()
+
+      use mod1, only: var1
+      use mod2, only: var2
+
+      use precision_kinds, only: dp
+      implicit none
+
+      integer :: i
+      real(dp) :: x, y
+
+      x = var1
+      y = var2
+
+      i = 2
+      
+      end
+
+Move variable in new module
+*********************************
+
+During refactoring of large code base it is sometimes useful to move variable from one module to another.
+For example in the following code :
+
+.. code-block:: fortran
+
+
+      subroutine func()
+
+      use mod1, only: var1, var3, var5
+      use mod2, only: var2, var7
+      
+      implicit real*8(a-h,o-z)
+
+      x = var1
+      y = var2
+
+      i = 2
+      
+      end
+
+We might wish to move `var3` to a new module called `modx`. This can be done with
+
+.. code-block:: console
+
+  python roquefort_fortran.py --action move_var --var_name var3 --new_module modx --filename ../example/test_move_var.f 
+
+Leading to :
+
+.. code-block:: fortran
+
+
+      subroutine func()
+
+      use mod1, only: var1, var5
+      use mod2, only: var2, var7
+      use modx, only: var3
+
+      implicit real*8(a-h,o-z)
+
+      x = var1
+      y = var2
+
+      i = 2
+      
+      end
+
 
 Contributing
 ************
