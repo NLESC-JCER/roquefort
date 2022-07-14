@@ -3,7 +3,20 @@ refac
 ################################################################################
 
 
+A tool for refactoring Fortran code.
 
+There are three possible actions --action {clean_common, clean_use, clean_implicit}
+
++ clean_common: Delete common a block, add the correspoinding block as a module in file m_common.f90.
+
++ clean_use: Delete unused variables imported by 'use' statements.
+
++ clean_implicit: Replace 'implicit real' by implicit none and declare variables using regular explicit declaration. 
+
+Subflags of --action options are:
+
++ --action clean_common --common_block_name, -n /string/ --path_to_source, -p /string/
++ --action clean_use (or clean_implicit) --filename /string/ --overwrite, -ow
 
 The project setup is documented in `a separate document <project_setup.rst>`_. Feel free to remove this document (and/or the link to this document) if you don't need it.
 
@@ -25,6 +38,25 @@ Run tests (including coverage) with:
 
   python setup.py test
 
+Usage
+*************
+To remove common blocks: 
+
+.. code-block:: console
+
+  python refac_fortran.py --action clean_common -n pars -p /usr/home/champ/
+
+To clean variables in use statements:
+
+.. code-block:: console
+
+  python refac_fortran.py --action clean_use --filename regterg.f90
+
+To remove implicit real statements:
+
+.. code-block:: console
+
+  python refac_fortran.py --action clean_implicit --filename splfit.f -ow
 
 Documentation
 *************
