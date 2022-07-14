@@ -21,7 +21,7 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
 
     # identifier for scoping
     start_keyword = ['subroutine', 'function', 'program', 'module']
-    end_keyword = ['end', 'end\n', 'END', 'END\n']
+    end_keyword = ['end', 'end\n', 'contains', 'contains\n', 'END', 'END\n']
 
     skip_keyword = ['interface', 'interface\n']
     skip_block = False
@@ -60,7 +60,7 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
                 idx_end.append(i)
 
 
-    return [SimpleNamespace(name=name, istart=istart,
+    return [SimpleNamespace(name=name, istart=istart, iend=iend,
                             data=data[istart:iend], module=[
                             ], floats=[],
                             integers=[], characters=[], complexes=[],
@@ -648,13 +648,22 @@ def modify_rawdata_move_var(rawdata: List[str], scopes: List[SimpleNamespace],
 
     :return: rawdata with modifications.
     """
+    insert_lines = []
     for index, scope in enumerate(scopes):
         print('  - Modifying rawdata of scope: %s' % scope.name)
                 
         # clean the raw data
-        rawdata = remove_variable(rawdata, scope, var_name, new_module)
+        rawdata, isrt_line = remove_variable(rawdata, scope, var_name, new_module)
 
+        if isrt_line is not None:
+            insert_lines.append(isrt_line)
         print('    ... done!\n')
+
+    for idx, isrt_line in enumerate(insert_lines):
+        
+        index = idx + isrt_line[0]
+        line = isrt_line[1]
+        rawdata.insert(index, line)
     return rawdata
 
 
@@ -770,10 +779,10 @@ def remove_variable(rawdata: List[str],
     """
 
 
+    add_var = False
     for mod in scope.module:
 
         print('  --  Module : %s' % mod.name)
-        
         nvar = 0
         for v in mod.var:
             if v.name != var_name:
@@ -783,6 +792,8 @@ def remove_variable(rawdata: List[str],
         idx_rawdata = scope.istart + mod.iline
 
         if nvar == 0:
+
+            add_var = True
             print('      Only variable %s in module %s, removing the entire module' %(var_name, mod.name))
             rawdata[idx_rawdata] = ''
             idx_rawdata += 1
@@ -800,8 +811,8 @@ def remove_variable(rawdata: List[str],
                 if var.name != var_name:
                     line += var.name + ', '
                 else:
-                    print('  ---   removing variable %s' %
-                          var.name)
+                    add_var = True
+                    print('  ---   removing variable %s' % var.name)
             rawdata[idx_rawdata] = line.rstrip(', ') + '\n'
 
             # remove the unwanted
@@ -810,17 +821,21 @@ def remove_variable(rawdata: List[str],
                 rawdata[idx_rawdata] = ''
                 idx_rawdata += 1
 
-    # add a new line to the module use  
-    print('  ---   adding variable %s to module %s' %
-                          (var_name, new_module))
-    idx_use = [idx for idx, line in enumerate(rawdata) if line.lstrip().startswith('use')]
-    new_line = rawdata[idx_use[-1]]
-    new_line = new_line.split('use')[0] + 'use ' + new_module + ', only: ' + var_name + '\n'
-    
-    rawdata.insert(idx_use[-1]+1, new_line)
+    # add a new line to the module use 
+    print(add_var)
+    insert_line = None
+    if add_var:
+        print('  --  Adding variable %s to module %s' %
+                            (var_name, new_module))
+        idx_use = [idx for idx, line in enumerate(rawdata[scope.istart:scope.iend]) if line.lstrip().startswith('use')]
+        new_line = rawdata[idx_use[-1]]
+        new_line = '      ' + 'use ' + new_module + ', only: ' + var_name + '\n'
+        
+        insert_line = (scope.istart+idx_use[-1]+1, new_line)
+        # rawdata.insert(scope.istart+idx_use[-1]+1, new_line)
     
 
-    return rawdata
+    return rawdata, insert_line
 
 
 def add_undeclared_variables(rawdata: List[str],
