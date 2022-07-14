@@ -8,7 +8,7 @@ Features
 
 Roquefort allows to :
 
-- Automatically create `module` to replace existing 'common blocks'
+- `Automatically create `module` to replace existing 'common blocks' https://github.com/NLESC-JCER/roquefort#remove-common-block`_.
 - Clean unused variable imported from modules
 - Automatically transform `implicit` variable declaration to `explicit` variable declaration 
 - Move variable to new module
