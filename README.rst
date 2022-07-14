@@ -11,7 +11,7 @@ Roquefort allows to :
 - `Automatically create module to replace existing common blocks <https://github.com/NLESC-JCER/roquefort#remove-common-block>`_.
 - `Clean unused variable imported from modules <https://github.com/NLESC-JCER/roquefort#clean-unused-imported-variable>`_.
 - `Automatically transform implicit variable declaration to explicit variable declaration  <https://github.com/NLESC-JCER/roquefort/blob/master/README.rst#remove-implicit-variable>`_.
-- Move variable to new module
+- `Move variable to new module <https://github.com/NLESC-JCER/roquefort/blob/master/README.rst#move-variable-in-new-module>`_.
 
 
 Installation
