@@ -1,17 +1,17 @@
 ################################################################################
 Roquefort
 ################################################################################
-A tool for **R**efactoring **O**f **QUE**stionable **FORT**ran 
+A tool for **R**\ efactoring **O**\ f **QUE**\ stionable **FORT**\ ran 
 
 Features
 -------------
 
 Roquefort allows to :
 
-- Automatically create `module` to replace existing 'common blocks'
-- Clean unused variable imported from modules
-- Automatically transform `implicit` variable declaration to `explicit` variable declaration 
-- Move variable to new module
+- `Automatically create module to replace existing common blocks <https://github.com/NLESC-JCER/roquefort#remove-common-block>`_.
+- `Clean unused variable imported from modules <https://github.com/NLESC-JCER/roquefort#clean-unused-imported-variable>`_.
+- `Automatically transform implicit variable declaration to explicit variable declaration  <https://github.com/NLESC-JCER/roquefort/blob/master/README.rst#remove-implicit-variable>`_.
+- `Move variable to new module <https://github.com/NLESC-JCER/roquefort/blob/master/README.rst#move-variable-in-new-module>`_.
 
 
 Installation
