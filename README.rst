@@ -1,24 +1,18 @@
 ################################################################################
 Roquefort
 ################################################################################
-
-
 A tool for **R**efactoring **O**f **QUE**stionable **FORT**ran 
 
-There are three possible actions --action {clean_common, clean_use, clean_implicit}
+Features
+-------------
 
-+ clean_common: Delete common a block, add the correspoinding block as a module in file m_common.f90.
+Roquefort allows to :
 
-+ clean_use: Delete unused variables imported by 'use' statements.
+- Automatically create `module` to replace existing 'common blocks'
+- Clean unused variable imported from modules
+- Automatically transform `implicit` variable declaration to `explicit` variable declaration 
+- Move variable to new module
 
-+ clean_implicit: Replace 'implicit real' by implicit none and declare variables using regular explicit declaration. 
-
-Subflags of --action options are:
-
-+ --action clean_common --common_block_name, -n /string/ --path_to_source, -p /string/
-+ --action clean_use (or clean_implicit) --filename /string/ --overwrite, -ow
-
-The project setup is documented in `a separate document <project_setup.rst>`_. Feel free to remove this document (and/or the link to this document) if you don't need it.
 
 Installation
 ------------
