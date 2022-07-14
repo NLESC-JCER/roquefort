@@ -1,7 +1,7 @@
 ################################################################################
 Roquefort
 ################################################################################
-A tool for **R**efactoring **O**f **QUE**stionable **FORT**ran 
+A tool for **R**\ efactoring **O** \f **QUE**\ stionable **FORT**\ ran 
 
 Features
 -------------
