@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """ Parser of arguments. """
-from refac.clean_common import Refactor
-from refac.clean_use_and_implicit import clean_statements, move_variable
+from roquefort.clean_common import Refactor
+from roquefort.clean_use_and_implicit import clean_statements, move_variable
 from pathlib import Path
 import argparse
 from argparse import RawTextHelpFormatter

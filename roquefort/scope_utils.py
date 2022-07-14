@@ -1,7 +1,7 @@
 """ Utilities to build-up scopes."""
 from typing import List
 from types import SimpleNamespace
-from refac.string_utils import (flatten_string_list, has_number,
+from roquefort.string_utils import (flatten_string_list, has_number,
                                 split_string_hard, list_to_string,
                                 split_string_medium,
                                 split_string_with_parenthesis)

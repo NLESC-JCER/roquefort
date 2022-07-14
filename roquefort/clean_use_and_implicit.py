@@ -2,9 +2,9 @@
 import os
 from types import SimpleNamespace
 from typing import List
-from refac.io_utils import read_file, save_file, get_new_filename, rise_error
-from refac.scope_utils import separate_scope, fill_scopes, modify_rawdata, modify_rawdata_move_var
-from refac.string_utils import split_rawdata
+from roquefort.io_utils import read_file, save_file, get_new_filename, rise_error
+from roquefort.scope_utils import separate_scope, fill_scopes, modify_rawdata, modify_rawdata_move_var
+from roquefort.string_utils import split_rawdata
 import argparse
 
 

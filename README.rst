@@ -1,5 +1,5 @@
 ################################################################################
-refac
+roquefort
 ################################################################################
 
 
@@ -23,12 +23,12 @@ The project setup is documented in `a separate document <project_setup.rst>`_. F
 Installation
 ------------
 
-To install refac, do:
+To install roquefort, do:
 
 .. code-block:: console
 
-  git clone https://github.com//refac.git
-  cd refac
+  git clone https://github.com//roquefort.git
+  cd roquefort
   pip install .
 
 
@@ -44,19 +44,19 @@ To remove common blocks:
 
 .. code-block:: console
 
-  python refac_fortran.py --action clean_common -n pars -p /usr/home/champ/
+  python roquefort_fortran.py --action clean_common -n pars -p /usr/home/champ/
 
 To clean variables in use statements:
 
 .. code-block:: console
 
-  python refac_fortran.py --action clean_use --filename regterg.f90
+  python roquefort_fortran.py --action clean_use --filename regterg.f90
 
 To remove implicit real statements:
 
 .. code-block:: console
 
-  python refac_fortran.py --action clean_implicit --filename splfit.f -ow
+  python roquefort_fortran.py --action clean_implicit --filename splfit.f -ow
 
 Documentation
 *************
@@ -68,7 +68,7 @@ Include a link to your project's full documentation here.
 Contributing
 ************
 
-If you want to contribute to the development of refac,
+If you want to contribute to the development of roquefort,
 have a look at the `contribution guidelines <CONTRIBUTING.rst>`_.
 
 License
