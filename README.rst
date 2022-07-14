@@ -1,9 +1,9 @@
 ################################################################################
-roquefort
+Roquefort
 ################################################################################
 
 
-A tool for refactoring Fortran code.
+A tool for **R**efactoring **O**f **QUE**stionable **FORT**ran 
 
 There are three possible actions --action {clean_common, clean_use, clean_implicit}
 
@@ -39,12 +39,39 @@ Run tests (including coverage) with:
   python setup.py test
 
 Usage
-*************
+-----------------------
+
+Remove Common block
+***********************
+
+Common blocks are not unusual to find in Fortran77 code. It recommended to move this common block to modules. 
+The original Fortran code is :
+
+.. code-block:: fortran 
+
+
+  subroutine func()
+
+  common /mod1/ var1, var2
+  common /mod2/ var3, var4
+
+  implicit real*8(a-h,o-z)
+
+  x = var1
+  y = var2
+
+  i = 2
+
+  end
+
 To remove common blocks: 
 
 .. code-block:: console
 
-  python roquefort_fortran.py --action clean_common -n pars -p /usr/home/champ/
+  python roquefort_fortran.py --action clean_common -n mod1 -p ./example/
+
+Clean unused imported variable
+*********************************
 
 To clean variables in use statements:
 
