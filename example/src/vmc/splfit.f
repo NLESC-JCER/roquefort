@@ -3,7 +3,10 @@ c Written by Claudia Filippi
 c get spline_fit at r of basis fn irb of center ic and force iwf
 c 1st and 2nd derivs also calculated if ider=1.
 
+      use numbas, only: arg, d2rwf, igrid, iwrwf, nr, nrbas, numr, r0, rwf
+
       implicit real*8(a-h,o-z)
+
 
       include 'vmc.h'
       include 'numbas.h'
@@ -11,9 +14,6 @@ c 1st and 2nd derivs also calculated if ider=1.
 
       parameter(NCOEF=5,sixth=1.d0/6.d0)
 
-      common /numbas/ arg(MCTYPE),r0(MCTYPE)
-     &,rwf(MRWF_PTS,MRWF,MCTYPE,MWF),d2rwf(MRWF_PTS,MRWF,MCTYPE,MWF)
-     &,numr,nrbas(MCTYPE),igrid(MCTYPE),nr(MCTYPE),iwrwf(MBASIS,MCTYPE)
       common /numexp/ ae(2,MRWF,MCTYPE,MFORCE), ce(NCOEF,MRWF,MCTYPE,MFORCE)
       
       dimension wfv(4)
