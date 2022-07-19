@@ -132,7 +132,6 @@ def fill_module(scope: SimpleNamespace) -> SimpleNamespace:
         if len(s) == 2 and s[0].lower() == "use":
             continue
 
-        print(s)
         if len(s) >= 2:
         
             if s[0].lower() == 'use' and s[2].strip().startswith('only'):
