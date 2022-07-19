@@ -809,8 +809,15 @@ def remove_variable(rawdata: List[str],
                 'use')[0] + 'use ' + mod.name + ', only: '
 
             for var in mod.var:
-                if var.name != var_name:
+                
+                if var.name == '!':
+                    print(line)
+                    line = line[:-2] + ' ! '
+                    print(line)
+
+                elif var.name != var_name:
                     line += var.name + ', '
+
                 else:
                     add_var = True
                     print('  ---   removing variable %s' % var.name)

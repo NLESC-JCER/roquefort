@@ -169,7 +169,7 @@ def move_variable(args: argparse.ArgumentParser) -> \
     
     # Fill attributes of scopes:
     scopes = fill_scopes(rawdata, scopes, clean_implicit=False)
-    print(scopes)
+    
     # Modify rawdata according to scopes and flag options:
     modified_rawdata, rewrite = modify_rawdata_move_var(rawdata, scopes, 
                                        args.var_name, args.new_module)
