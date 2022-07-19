@@ -131,7 +131,8 @@ def fill_module(scope: SimpleNamespace) -> SimpleNamespace:
             continue
 
         if len(s) >= 2:
-            if s[0].lower() == 'use' and s[2].startswith('only'):
+        
+            if s[0].lower() == 'use' and s[2].strip().startswith('only'):
 
                 module_name = s[1].rstrip('\n')
                 mod = SimpleNamespace(
@@ -791,6 +792,7 @@ def remove_variable(rawdata: List[str],
         nvar = 0
         contains_var = False
         for v in mod.var:
+            
             if v.name != var_name:
                 nvar += 1
             if v.name == var_name:
