@@ -6,7 +6,7 @@
       use mod0, only: x
       use mod1, only: var1, var3, var5
       use mod2, only: var2, var7 ! sasa
-      use const,          	only: nelec
+      use const, 		        only: pi, hb, etrial, delta, deltai, fbias, nelec, imetro
       
       implicit real*8(a-h,o-z)
 

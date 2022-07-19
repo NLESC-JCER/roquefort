@@ -31,8 +31,8 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
     name, idx_start, idx_end = [], [], []
     for i, d in enumerate(data):
 
-        d = [el.lstrip('\t').lower() for el in d]
-
+        d = [el.strip().lower() for el in d]
+        
         if len(d) == 0:
             continue
 
@@ -122,7 +122,9 @@ def fill_module(scope: SimpleNamespace) -> SimpleNamespace:
     :return: the same entry scope with scope.module attribute populated.
     """
 
-    for iline, s in enumerate(scope.data):
+    for iline, sori in enumerate(scope.data):
+
+        s = [so.strip() for so in sori if len(so.strip())>0]
 
         if len(s) == 0:
             continue
@@ -130,6 +132,7 @@ def fill_module(scope: SimpleNamespace) -> SimpleNamespace:
         if len(s) == 2 and s[0].lower() == "use":
             continue
 
+        print(s)
         if len(s) >= 2:
         
             if s[0].lower() == 'use' and s[2].strip().startswith('only'):
