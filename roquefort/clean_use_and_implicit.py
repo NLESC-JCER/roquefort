@@ -169,17 +169,18 @@ def move_variable(args: argparse.ArgumentParser) -> \
     
     # Fill attributes of scopes:
     scopes = fill_scopes(rawdata, scopes, clean_implicit=False)
-
+    print(scopes)
     # Modify rawdata according to scopes and flag options:
-    modified_rawdata = modify_rawdata_move_var(rawdata, scopes, 
+    modified_rawdata, rewrite = modify_rawdata_move_var(rawdata, scopes, 
                                        args.var_name, args.new_module)
 
     # save file copy
-    if args.overwrite:
-        save_file(args.filename, modified_rawdata)
-    else:
-        new_filename = get_new_filename(args.filename)
-        save_file(new_filename, modified_rawdata)
+    if rewrite:
+        if args.overwrite:
+            save_file(args.filename, modified_rawdata)
+        else:
+            new_filename = get_new_filename(args.filename)
+            save_file(new_filename, modified_rawdata)
 
     return scopes
 

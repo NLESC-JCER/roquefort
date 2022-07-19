@@ -659,12 +659,13 @@ def modify_rawdata_move_var(rawdata: List[str], scopes: List[SimpleNamespace],
             insert_lines.append(isrt_line)
         print('    ... done!\n')
 
+    rewrite = False
     for idx, isrt_line in enumerate(insert_lines):
-        
+        rewrite = True
         index = idx + isrt_line[0]
         line = isrt_line[1]
         rawdata.insert(index, line)
-    return rawdata
+    return rawdata, rewrite
 
 
 def count_var(scope: SimpleNamespace) -> SimpleNamespace:
