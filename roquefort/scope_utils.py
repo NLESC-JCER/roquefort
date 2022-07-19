@@ -641,7 +641,7 @@ def modify_rawdata(rawdata: List[str], scopes: List[SimpleNamespace],
 
 def modify_rawdata_move_var(rawdata: List[str], scopes: List[SimpleNamespace],
                    var_name: str,
-                   new_module: str) -> List[str]:
+                   new_module: str, from_module: str) -> List[str]:
     """ Modify rawdata input according to scopes and argument flags.
 
     :param rawdata: List of the bulky content of the read file.
@@ -660,7 +660,7 @@ def modify_rawdata_move_var(rawdata: List[str], scopes: List[SimpleNamespace],
         
 
         # clean the raw data
-        rawdata, isrt_line = remove_variable(rawdata, scope, var_name, new_module)
+        rawdata, isrt_line = remove_variable(rawdata, scope, var_name, new_module, from_module)
 
         if isrt_line is not None:
             insert_lines.append(isrt_line)
@@ -775,7 +775,8 @@ def clean_raw_data(rawdata: List[str],
 
 
 def remove_variable(rawdata: List[str],
-                    scope: SimpleNamespace, var_name: str, new_module: str) -> List[str]:
+                    scope: SimpleNamespace, var_name: str, 
+                    new_module: str, from_module: str) -> List[str]:
     """
 
     Args:
@@ -790,9 +791,17 @@ def remove_variable(rawdata: List[str],
     add_var = False
     for mod in scope.module:
 
+        
+
         print('  --  Module : %s' % mod.name)
+        
+        if (from_module is not None) and (mod.name!=from_module):
+            print('skip %s' %mod.name)
+            continue
+
         nvar = 0
         contains_var = False
+
         for v in mod.var:
             
             if v.name != var_name:

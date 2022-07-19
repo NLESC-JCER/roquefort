@@ -81,6 +81,10 @@ def main():
     clean_implicit.add_argument("--new_module",
                                 type=str,
                                 help="Name of the new module")
+    clean_implicit.add_argument("--from_module",
+                                type=str,
+                                help="Name of the old module", default=None)
+
 
     clean_implicit.add_argument('-ow',
                                 '--overwrite',
