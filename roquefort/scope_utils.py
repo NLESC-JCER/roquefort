@@ -9,6 +9,7 @@ import string
 import re
 
 
+
 def separate_scope(data: List[str]) -> List[SimpleNamespace]:
     """Find the scope regions of the data
 
@@ -49,12 +50,14 @@ def separate_scope(data: List[str]) -> List[SimpleNamespace]:
             continue
 
         if d[0].lower() in start_keyword:
-            # print(d)
             idx_start.append(i)
             name.append(d[1].split('(')[0].rstrip('\n'))
 
         if d[0] in end_keyword:
+            
             if len(d) > 1 and d[1] == "if":
+                continue
+            if len(d) > 1 and d[1].startswith("module"):
                 continue
             else:
                 idx_end.append(i)
@@ -651,7 +654,8 @@ def modify_rawdata_move_var(rawdata: List[str], scopes: List[SimpleNamespace],
     insert_lines = []
     for index, scope in enumerate(scopes):
         print('  - Modifying rawdata of scope: %s' % scope.name)
-                
+        
+
         # clean the raw data
         rawdata, isrt_line = remove_variable(rawdata, scope, var_name, new_module)
 
@@ -839,10 +843,13 @@ def remove_variable(rawdata: List[str],
         print('  --  Adding variable %s to module %s' %
                             (var_name, new_module))
         idx_use = [idx for idx, line in enumerate(rawdata[scope.istart:scope.iend]) if line.lstrip().startswith('use')]
-        new_line = rawdata[idx_use[-1]]
+        # new_line = rawdata[idx_use[-1]]
         new_line = '      ' + 'use ' + new_module + ', only: ' + var_name + '\n'
-        
-        insert_line = (scope.istart+idx_use[-1]+1, new_line)
+        if len(idx_use)>0:
+            offset = idx_use[-1]+1
+        else:
+            offset = 2
+        insert_line = (scope.istart+offset, new_line)
         # rawdata.insert(scope.istart+idx_use[-1]+1, new_line)
     
 
