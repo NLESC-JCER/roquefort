@@ -785,52 +785,55 @@ def remove_variable(rawdata: List[str],
 
         print('  --  Module : %s' % mod.name)
         nvar = 0
+        contains_var = False
         for v in mod.var:
             if v.name != var_name:
                 nvar += 1
+            if v.name == var_name:
+                contains_var = True
         
+        if contains_var:
         
-        idx_rawdata = scope.istart + mod.iline
+            idx_rawdata = scope.istart + mod.iline
 
-        if nvar == 0:
+            if nvar == 0:
 
-            add_var = True
-            print('      Only variable %s in module %s, removing the entire module' %(var_name, mod.name))
-            rawdata[idx_rawdata] = ''
-            idx_rawdata += 1
-            while rawdata[idx_rawdata].lstrip(' ').startswith('&'):
+                add_var = True
+                print('      Only variable %s in module %s, removing the entire module' %(var_name, mod.name))
                 rawdata[idx_rawdata] = ''
                 idx_rawdata += 1
+                while rawdata[idx_rawdata].lstrip(' ').startswith('&'):
+                    rawdata[idx_rawdata] = ''
+                    idx_rawdata += 1
 
-        else:
+            else:
 
-            ori_line = rawdata[idx_rawdata]
-            line = ori_line.split(
-                'use')[0] + 'use ' + mod.name + ', only: '
+                ori_line = rawdata[idx_rawdata]
+                line = ori_line.split(
+                    'use')[0] + 'use ' + mod.name + ', only: '
 
-            for var in mod.var:
-                
-                if var.name == '!':
-                    print(line)
-                    line = line[:-2] + ' ! '
-                    print(line)
+                for var in mod.var:
+                    
+                    if var.name == '!':
+                        print(line)
+                        line = line[:-2] + ' ! '
+                        print(line)
 
-                elif var.name != var_name:
-                    line += var.name + ', '
+                    elif var.name != var_name:
+                        line += var.name + ', '
 
-                else:
-                    add_var = True
-                    print('  ---   removing variable %s' % var.name)
-            rawdata[idx_rawdata] = line.rstrip(', ') + '\n'
+                    else:
+                        add_var = True
+                        print('  ---   removing variable %s' % var.name)
+                rawdata[idx_rawdata] = line.rstrip(', ') + '\n'
 
-            # remove the unwanted
-            idx_rawdata += 1
-            while rawdata[idx_rawdata].lstrip(' ').startswith('&'):
-                rawdata[idx_rawdata] = ''
+                # remove the unwanted
                 idx_rawdata += 1
+                while rawdata[idx_rawdata].lstrip(' ').startswith('&'):
+                    rawdata[idx_rawdata] = ''
+                    idx_rawdata += 1
 
     # add a new line to the module use 
-    print(add_var)
     insert_line = None
     if add_var:
         print('  --  Adding variable %s to module %s' %
