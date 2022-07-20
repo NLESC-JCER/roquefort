@@ -1,7 +1,7 @@
 ################################################################################
 Roquefort
 ################################################################################
-A tool for **R**\ efactoring **O**\ f **QUE**\ stionable **FORT**\ ran 
+A tool for **R**\ efactoring **O**\ f **QUE**\ stionable **FORT**\ ran
 
 Features
 -------------
@@ -38,10 +38,10 @@ Usage
 Remove Common block
 ***********************
 
-Common blocks are not unusual to find in Fortran77 code. It recommended to move this common block to modules. 
+Common blocks are not unusual to find in Fortran77 code. It recommended to move this common block to modules.
 The original Fortran code is :
 
-.. code-block:: fortran 
+.. code-block:: fortran
 
 
   subroutine func()
@@ -58,7 +58,7 @@ The original Fortran code is :
 
   end
 
-To remove common blocks: 
+To remove common blocks:
 
 .. code-block:: console
 
@@ -76,16 +76,16 @@ Leads to the code :
 
 
       common /mod2/ var3, var4
-      
+
 
       x = var1
       y = var2
 
       i = 2
-      
+
       end
 
-with the additional module file 
+with the additional module file
 
 .. code-block:: fortran
 
@@ -131,7 +131,7 @@ The variable `var2` of `mod1` is not used. We can remove that variable with
   python refac_fortran.py --action clean_use --filename ../example/test_use.f
 
 
-Leading to 
+Leading to
 
 .. code-block:: fortran
 
@@ -152,8 +152,8 @@ Leading to
 Remove implicit variable
 *********************************
 
-Implicit declaration of variable were common but lead to unclarity in the code. 
-We can remove all implicit declaration  and automatically declare variables. For example the code 
+Implicit declaration of variable were common but lead to unclarity in the code.
+We can remove all implicit declaration  and automatically declare variables. For example the code
 
 .. code-block:: fortran
 
@@ -168,14 +168,14 @@ We can remove all implicit declaration  and automatically declare variables. For
       y = var2
 
       i = 2
-      
+
       end
 
 implicitly declare variables `x`, `y` and `i`. We can make the declaration implicit with :
 
 .. code-block:: console
 
-  python refac_fortran.py --action clean_implicit --filename ../example/test_implicit.f 
+  python refac_fortran.py --action clean_implicit --filename ../example/test_implicit.f
 
 Leading to :
 
@@ -197,7 +197,7 @@ Leading to :
       y = var2
 
       i = 2
-      
+
       end
 Note that the `precision_kinds` module needs to be created separately to look like:
 
@@ -231,21 +231,21 @@ For example in the following code :
 
       use mod1, only: var1, var3, var5
       use mod2, only: var2, var7
-      
+
       implicit real*8(a-h,o-z)
 
       x = var1
       y = var2
 
       i = 2
-      
+
       end
 
 We might wish to move `var3` to a new module called `modx`. This can be done with
 
 .. code-block:: console
 
-  python refac_fortran.py --action move_var --var_name var3 --new_module modx --filename ../example/test_move_var.f 
+  python refac_fortran.py --action move_var --var_name var3 --new_module modx --filename ../example/test_move_var.f
 
 Leading to :
 
@@ -264,10 +264,61 @@ Leading to :
       y = var2
 
       i = 2
-      
+
       end
 
 Note that you need to move the variable from `mod1` to `modx` in the module file separately.
+
+Sort and condense your use statements
+*************************************
+
+During refactoring of large code base it is sometimes useful to reorder the use statements and condense them.
+For example in the following code :
+
+.. code-block:: fortran
+
+
+      subroutine func()
+
+      use mod1, only: var1, var3, var5
+      use module2, only: var2, var7
+      use mod1, only: var1, var3, var5
+      use module2, only: var4
+
+      implicit real*8(a-h,o-z)
+
+      x = var1
+      y = var2
+
+      i = 2
+
+      end
+
+We might wish to remove duplicate imports, and condense the existing imports. This can be done with
+
+.. code-block:: console
+
+  roquefort condense_use --sort --min_only_offset=20 --max_line_length=72 --overwrite ../example/test_condense_use.f
+
+Leading to :
+
+.. code-block:: fortran
+
+
+      subroutine func()
+
+      use mod1,    only: var1,var3,var5
+      use module2, only: var2,var4,var7
+
+      implicit real*8(a-h,o-z)
+
+      x = var1
+      y = var2
+
+      i = 2
+
+      end
+
 
 Contributing
 ************

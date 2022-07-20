@@ -64,6 +64,9 @@ def condense_use(*, overwrite, filename, max_line_length, min_only_offset,
         if sort:
             condensed_modules = dict(sorted(condensed_modules.items()))
         for k, v in condensed_modules.items():
+            v = list(set(v))
+            if sort:
+                v = sorted(v)
             rawdata[min_line] += create_newline(k, v, max_line_length,
                                                 min_only_offset)
 
