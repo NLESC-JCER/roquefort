@@ -284,8 +284,11 @@ For example in the following code :
       use module2, only: var2, var7
       use mod1, only: var1, var3, var5
       use module2, only: var4
+      use very_long_module_name, only: longvar1
+      use xmod1, only: var8, var9
+      use xmod2
 
-      implicit real*8(a-h,o-z)
+      implicit none
 
       x = var1
       y = var2
@@ -308,9 +311,12 @@ Leading to :
       subroutine func()
 
       use mod1,    only: var1,var3,var5
-      use module2, only: var2,var4,var7
+      use module2, only: var4,var2,var7
+      use very_long_module_name, only: longvar1
+      use xmod1,   only: var8,var9
+      use xmod2
 
-      implicit real*8(a-h,o-z)
+      implicit none
 
       x = var1
       y = var2
@@ -318,6 +324,8 @@ Leading to :
       i = 2
 
       end
+
+The `min_only_offset` argument determines the minimum column where the only statement can start, thus aligning them vertically
 
 
 Contributing
